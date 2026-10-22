@@ -2,14 +2,14 @@
 id: nid_hc65067veoxpca8wtir8bnj2e_e
 title: "create the library and demo on top of it"
 status: open
-deps: []
+deps: [nid_spbntjy1m5mjtuzwhraxzd8h1_e, nid_djtlbgb2q5iipx2go9fy2eogc_e, nid_u8rb9nyllrir2j6ditgfhu7uo_e, nid_q5cs3lr79q1xa2ebtbny5exc9_e, nid_5suxnngcwzcabej2vgrnytvx4_e, nid_m9bylgyu4bb098rqygf91vtuo_e, nid_k9s0fwfj8y13qhmkr2c2um043_e, nid_qgu2pl5p1q0spnndfwu9xe590_e]
 links: []
 created_iso: 2026-10-22T23:42:07Z
 status_updated_iso: 2026-10-22T23:42:07Z
-type: task
+type: epic
 priority: 3
 assignee: nickolaykondratyev
-tags: []
+tags: [mindmap-v1]
 ---
 
 Your task is to create the library and the demo to use it on top of the library according to `spec.md`.
@@ -24,7 +24,7 @@ Retest prior to merging and pushing.
 
 Use playwright where necessary (install it during setup so it's readily available). 
 
-Use `ticket` CLI to keep track of follow ups and work left to do, but you can also modify `spec.md` as you go along to know what needs to be done and what is completed.
+Use `ticket` CLI to keep track of follow-ups and work left to do, but you can also modify `spec.md` as you go along to know what needs to be done and what is completed.
 
 Use `change_log` CLI and git commits liberally.
 
