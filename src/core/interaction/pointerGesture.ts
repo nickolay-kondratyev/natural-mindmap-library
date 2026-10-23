@@ -51,15 +51,6 @@ const NO_END: GestureEnd = { kind: 'none' };
 export class PointerGesture {
   private state: GestureState = IDLE;
 
-  get isDragging(): boolean {
-    return this.state.kind === 'dragging';
-  }
-
-  /** The node being dragged, or `null`. */
-  get draggedNodeId(): NodeId | null {
-    return this.state.kind === 'dragging' ? this.state.nodeId : null;
-  }
-
   press(point: Point, target: PressTarget): void {
     this.state = { kind: 'pressed', target, start: point };
   }

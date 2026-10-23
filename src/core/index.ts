@@ -57,9 +57,6 @@ export {
 } from './edit/editSession';
 export { CONFIRM_IMMEDIATELY, DEFAULT_EDIT_HANDLER, InMemoryHost, type HostSimulation } from './edit/inMemoryHost';
 export type { NodeRepositionEvent } from './interaction/repositionEvent';
-export { DRAFT_NODE_ID } from './interaction/canvasInteractions';
-export { DRAG_THRESHOLD_PX } from './interaction/pointerGesture';
 export { HANDLE_GAP, HANDLE_RADIUS } from './interaction/hitTest';
 export { LABEL_EDITOR_ACCESSIBLE_NAME } from './interaction/inlineLabelEditor';
-export { applyPositionOverrides, moveSubtree, type PositionOverrides } from './layout/positionOverrides';
 export { DEFAULT_VIEW, MAX_ZOOM, MIN_ZOOM, type MindmapView } from './view/viewController';

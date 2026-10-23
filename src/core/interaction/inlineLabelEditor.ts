@@ -38,10 +38,6 @@ export class InlineLabelEditor {
 
   constructor(private readonly canvas: HTMLCanvasElement) {}
 
-  get isOpen(): boolean {
-    return this.session !== null;
-  }
-
   open(session: LabelEditSession): void {
     this.close();
     const input = this.input ?? this.createInput();

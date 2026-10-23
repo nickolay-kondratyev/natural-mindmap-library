@@ -58,11 +58,6 @@ describe('PointerGesture', () => {
       gesture.cancel();
       expect(gesture.release(FURTHER)).toEqual({ kind: 'none' });
     });
-
-    it('WHEN dragging THEN the dragged node is reported', () => {
-      gesture.move(BEYOND);
-      expect(gesture.draggedNodeId).toBe('a');
-    });
   });
 
   describe('GIVEN a press on empty canvas', () => {
