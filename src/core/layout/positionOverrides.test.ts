@@ -3,7 +3,14 @@ import type { MindmapData, NodeId, Point } from '../model/node';
 import { buildTree } from '../model/tree';
 import { resolveNodeSizes } from '../size/nodeSizeResolver';
 import type { NodePositions } from './layoutTypes';
-import { applyPositionOverrides, moveSubtree, NO_POSITION_OVERRIDES, type PositionOverrides } from './positionOverrides';
+import {
+  applyPositionOverrides,
+  moveSubtree,
+  NO_POSITION_OVERRIDES,
+  withNodeDropped,
+  withoutSubtree,
+  type PositionOverrides,
+} from './positionOverrides';
 
 const PADDING = 8;
 
@@ -79,5 +86,34 @@ describe('applyPositionOverrides', () => {
 
   it('GIVEN an override that drops a node onto another WHEN applied THEN the overridden node does not yield', () => {
     expect(apply(new Map([['a', { x: 300, y: 195 }]])).get('a')).toEqual({ x: 300, y: 195 });
+  });
+});
+
+describe('GIVEN a child that was dragged earlier', () => {
+  const earlier: PositionOverrides = new Map([['a1', { x: 520, y: -40 }]]);
+
+  describe('WHEN its parent is dropped 10 right and 20 down', () => {
+    const result = withNodeDropped(earlier, tree, { nodeId: 'a', from: { x: 300, y: -100 }, to: { x: 310, y: -80 } });
+
+    it('THEN the parent is recorded at its drop point', () => {
+      expect(result.get('a')).toEqual({ x: 310, y: -80 });
+    });
+
+    it('THEN the child moves along by the same delta instead of snapping back', () => {
+      expect(result.get('a1')).toEqual({ x: 530, y: -20 });
+    });
+  });
+
+  it('WHEN an unrelated node is dropped THEN the child keeps its position', () => {
+    const result = withNodeDropped(earlier, tree, { nodeId: 'b', from: { x: 300, y: 200 }, to: { x: 310, y: 220 } });
+    expect(result.get('a1')).toEqual({ x: 520, y: -40 });
+  });
+
+  it('WHEN the subtree of its parent is cleared THEN its override is gone', () => {
+    expect(withoutSubtree(earlier, tree, 'a').has('a1')).toBe(false);
+  });
+
+  it('WHEN the subtree of an unrelated node is cleared THEN its override stays', () => {
+    expect(withoutSubtree(earlier, tree, 'b').has('a1')).toBe(true);
   });
 });

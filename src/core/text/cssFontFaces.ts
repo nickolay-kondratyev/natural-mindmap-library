@@ -10,6 +10,7 @@ const FAMILY_PREFIX = 'natural-mindmap-font-';
  */
 export class CssFontFaces {
   private readonly families = new WeakMap<LoadedFont, string>();
+  private readonly faces: FontFace[] = [];
   private registered = 0;
 
   constructor(private readonly document: Document) {}
@@ -20,6 +21,12 @@ export class CssFontFaces {
     return `"${this.register(font)}", ${FALLBACK_FAMILY}`;
   }
 
+  /** Unregisters every face this instance added, so remounting does not pile them up on the document. */
+  dispose(): void {
+    for (const face of this.faces) this.document.fonts.delete(face);
+    this.faces.length = 0;
+  }
+
   private register(font: LoadedFont): string {
     const existing = this.families.get(font);
     if (existing !== undefined) return existing;
@@ -27,6 +34,7 @@ export class CssFontFaces {
     const family = `${FAMILY_PREFIX}${this.registered}`;
     const face = new FontFace(family, font.bytes);
     this.document.fonts.add(face);
+    this.faces.push(face);
     // Bytes are local, so this settles almost at once; a font the browser cannot use just leaves the fallback.
     face.load().catch((error: unknown) => console.warn('natural-mindmap: label font unusable for inline editing', { error }));
     this.families.set(font, family);

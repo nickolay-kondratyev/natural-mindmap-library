@@ -6,7 +6,7 @@ import { findEditProblem } from '../edit/editValidation';
 import type { MindmapExtensions } from '../extensions';
 import { buildBranches } from '../geometry/branchGeometry';
 import { subtreeIds } from '../layout/layoutLookups';
-import { moveSubtree, type PositionOverrides } from '../layout/positionOverrides';
+import { moveSubtree, withNodeDropped, withoutSubtree, type PositionOverrides } from '../layout/positionOverrides';
 import type { MindmapData, NodeId, Point, Side } from '../model/node';
 import { buildTree, type MindmapTree } from '../model/tree';
 import type { Viewport } from '../render/canvasRenderer';
@@ -69,7 +69,7 @@ const CURSOR = { idle: '', grab: 'grab', grabbing: 'grabbing', button: 'pointer'
  */
 export class CanvasInteractions {
   private readonly gesture = new PointerGesture();
-  private readonly overrides = new Map<NodeId, Point>();
+  private overrides: PositionOverrides = new Map();
   private readonly editor: InlineLabelEditor;
   private readonly notice: NoticeBanner;
   private readonly cssFonts: CssFontFaces;
@@ -145,7 +145,7 @@ export class CanvasInteractions {
     if (status.kind === 'idle') this.editorRequest = null;
     // A confirmed reparent lands at its new parent's layout spot, not at a position dragged under the old parent.
     if (previous.kind === 'pending' && previous.request.type === 'move' && status.kind === 'idle') {
-      for (const id of subtreeIds(buildTree(this.host.edits.confirmedData), previous.request.nodeId)) this.overrides.delete(id);
+      this.overrides = withoutSubtree(this.overrides, buildTree(this.host.edits.confirmedData), previous.request.nodeId);
     }
     this.updateCursor();
   }
@@ -163,6 +163,7 @@ export class CanvasInteractions {
     for (const remove of this.removeListeners) remove();
     this.editor.dispose();
     this.notice.dispose();
+    this.cssFonts.dispose();
   }
 
   // ---- pointer events ----
@@ -193,8 +194,9 @@ export class CanvasInteractions {
 
   private onPointerUp(event: PointerEvent): void {
     const screen = this.canvasPoint(event);
+    // No explicit releasePointerCapture: the browser releases it right after pointerup, and an explicit release
+    // here would fire lostpointercapture (which cancels the gesture) around the drop being handled.
     const end = this.gesture.release(screen);
-    if (this.host.canvas.hasPointerCapture(event.pointerId)) this.host.canvas.releasePointerCapture(event.pointerId);
     switch (end.kind) {
       case 'none':
         break;
@@ -272,7 +274,7 @@ export class CanvasInteractions {
     if (start === undefined) return;
     const offset = this.toSceneOffset(screenOffset);
     const position = { x: start.x + offset.x, y: start.y + offset.y };
-    this.overrides.set(drag.nodeId, position);
+    this.overrides = withNodeDropped(this.overrides, drag.base.tree, { nodeId: drag.nodeId, from: start, to: position });
     this.host.onNodeReposition({ nodeId: drag.nodeId, position });
   }
 
@@ -381,8 +383,7 @@ export class CanvasInteractions {
   private effectiveOverrides(): PositionOverrides {
     const { status, confirmedData } = this.host.edits;
     if (status.kind !== 'pending' || status.request.type !== 'move') return this.overrides;
-    const moving = new Set(subtreeIds(buildTree(confirmedData), status.request.nodeId));
-    return new Map([...this.overrides].filter(([id]) => !moving.has(id)));
+    return withoutSubtree(this.overrides, buildTree(confirmedData), status.request.nodeId);
   }
 
   // ---- hover and cursor ----

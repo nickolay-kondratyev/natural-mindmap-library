@@ -114,7 +114,8 @@ highlight / pending veil on top.
   target, so self/descendant drops cannot happen by drag and `findEditProblem` still guards), dropping elsewhere
   stores a library-local `PositionOverrides` entry and emits `onNodeReposition`. `buildScene(..., overrides)`
   applies overrides after the pipeline and re-runs `resolveCollisions` with the overridden subtrees pinned (no
-  overrides = pipeline output untouched); a confirmed `move` drops the moved subtree's overrides.
+  overrides = pipeline output untouched); a drop carries descendants' own overrides along, and a confirmed `move`
+  drops the moved subtree's overrides.
   Hover buttons: "+" on the outer side (both sides for the root) opens the inline editor on a local draft child
   (`DRAFT_NODE_ID`, not sent until Enter); "x" above non-root nodes sends `delete`. Double-click renames. Editors
   do not open while an edit is pending. DOM overlays (`<input>` editor, `role="alert"` notice with the rejection or

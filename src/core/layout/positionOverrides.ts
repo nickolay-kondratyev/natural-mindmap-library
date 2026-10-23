@@ -32,6 +32,35 @@ export function moveSubtree(positions: NodePositions, tree: MindmapTree, nodeId:
   return result;
 }
 
+/** A node drag that ended away from any drop target (spec I2), in scene coordinates. */
+export interface NodeDrop {
+  readonly nodeId: NodeId;
+  /** The node's centre when the drag started. */
+  readonly from: Point;
+  readonly to: Point;
+}
+
+/**
+ * Overrides after `drop`: the dragged node gets its new centre, and descendants with an override of their own
+ * move by the same delta, since the whole subtree travels with the dragged node (else they would snap back).
+ */
+export function withNodeDropped(overrides: PositionOverrides, tree: MindmapTree, drop: NodeDrop): PositionOverrides {
+  const delta = { x: drop.to.x - drop.from.x, y: drop.to.y - drop.from.y };
+  const result = new Map(overrides);
+  for (const id of subtreeIds(tree, drop.nodeId)) {
+    const position = result.get(id);
+    if (position !== undefined) result.set(id, { x: position.x + delta.x, y: position.y + delta.y });
+  }
+  result.set(drop.nodeId, drop.to);
+  return result;
+}
+
+/** Overrides minus those of `nodeId`'s subtree, so it lands at its layout spot (e.g. after a reparent). */
+export function withoutSubtree(overrides: PositionOverrides, tree: MindmapTree, nodeId: NodeId): PositionOverrides {
+  const dropped = new Set(subtreeIds(tree, nodeId));
+  return new Map([...overrides].filter(([id]) => !dropped.has(id)));
+}
+
 /**
  * Places every overridden node at its chosen centre, carrying its subtree along (spec I2), then pushes the other
  * nodes apart (R23) with the overridden subtrees pinned so they stay exactly where the user put them. Parents are
