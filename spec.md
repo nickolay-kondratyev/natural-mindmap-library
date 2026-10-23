@@ -27,6 +27,7 @@ The library should expose the different settings, and we should also have a runn
 - R3. The root is visually distinct: neutral dark slate fill, larger box, label is boldened.
   - yes root center is visually distinct.
 - R4. Node boxes shrink with tree depth (root largest, leaves smallest).
+  - Shrinking is only the DEFAULT. A child node may be larger than its parent (per-node `size` in data, or a depth scale > 1); layout, branches and text must not assume child < parent.
   - yes.
 **Branches**
 - R5. Every parent→child link is drawn as a **filled, tapered, curved limb**: thick
