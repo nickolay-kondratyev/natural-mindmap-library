@@ -1,17 +1,17 @@
 ---
+closed_iso: 2026-10-23T00:15:59Z
 id: nid_spbntjy1m5mjtuzwhraxzd8h1_e
 title: "Scaffold package, core model, config types, minimal render and demo shell"
-status: in_progress
+status: closed
 deps: []
 links: []
 created_iso: 2026-10-22T23:56:09Z
-status_updated_iso: 2026-10-22T23:59:24Z
+status_updated_iso: 2026-10-23T00:15:59Z
 type: task
 parent: nid_hc65067veoxpca8wtir8bnj2e_e
 priority: 1
 assignee: CC_WITH-nickolaykondratyev
 tags: [mindmap-v1]
-pwd: /home/nickolaykondratyev/git_repos/nickolay-kondratyev_natural-mindmap-library/.worktree/t-spbntjy1
 profile: higher
 ---
 ## Goal
