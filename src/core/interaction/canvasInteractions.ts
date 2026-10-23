@@ -1,13 +1,11 @@
 import type { BranchConfig, MindmapConfig } from '../config/config';
-import { applyEdit } from '../edit/applyEdit';
-import type { AddEditRequest, EditRequest } from '../edit/editRequest';
-import { EDIT_BLOCKED_REASON, PENDING_NODE_ID, type EditSession, type EditStatus } from '../edit/editSession';
-import { findEditProblem } from '../edit/editValidation';
+import type { EditRequest } from '../edit/editRequest';
+import { PENDING_NODE_ID, type EditSession, type EditStatus } from '../edit/editSession';
 import type { MindmapExtensions } from '../extensions';
 import { buildBranches } from '../geometry/branchGeometry';
 import { subtreeIds } from '../layout/layoutLookups';
-import { moveSubtree, withNodeDropped, withoutSubtree, type PositionOverrides } from '../layout/positionOverrides';
-import type { MindmapData, NodeId, Point, Side } from '../model/node';
+import { moveSubtree } from '../layout/positionOverrides';
+import type { NodeId, Point, Side } from '../model/node';
 import { buildTree, type MindmapTree } from '../model/tree';
 import type { Viewport } from '../render/canvasRenderer';
 import { drawInteractionOverlay } from '../render/interactionOverlay';
@@ -19,12 +17,10 @@ import type { LabelFonts } from '../text/labelFontLoader';
 import type { ViewController } from '../view/viewController';
 import { nodeAt, nodeBoxOf, nodeHandles, pointerTargetAt, sameHandle, type NodeHandle, type PointerTarget } from './hitTest';
 import { InlineLabelEditor, type LabelEditorPlacement } from './inlineLabelEditor';
+import { addDraftRequest, DRAFT_NODE_ID, LocalEditState } from './localEditState';
 import { NoticeBanner } from './noticeBanner';
 import { PointerGesture, type PressTarget } from './pointerGesture';
 import type { NodeRepositionEvent } from './repositionEvent';
-
-/** Id of the local, not-yet-sent child shown while its label is typed (the host picks the real id). */
-export const DRAFT_NODE_ID: NodeId = 'natural-mindmap:draft-node';
 
 /** What the interactions need from the mount; getters because config/extensions/fonts change over time. */
 export interface InteractionHost {
@@ -62,14 +58,15 @@ const CURSOR = { idle: '', grab: 'grab', grabbing: 'grabbing', button: 'pointer'
  * Canvas pointer interactions (spec I1-I5): pan/zoom, drag to reposition (push-apart on drop) or to reparent
  * (drop onto a node), hover "+" / "x" buttons, double-click inline rename, plus the pending / rejected feedback.
  * Structural edits only ever go through `EditSession` (the host confirms); repositions are library-local
- * overrides reported via `onNodeReposition`.
+ * overrides reported via `onNodeReposition`. This class is the DOM wiring; the decisions live in DOM-free units
+ * (`PointerGesture`, `hitTest`, `LocalEditState`).
  *
  * WHY-NOT live push-apart while dragging: the drop target would always be pushed out from under the pointer,
  * making reparenting impossible. Other nodes stay put during the drag and yield once it is dropped.
  */
 export class CanvasInteractions {
   private readonly gesture = new PointerGesture();
-  private overrides: PositionOverrides = new Map();
+  private readonly local: LocalEditState;
   private readonly editor: InlineLabelEditor;
   private readonly notice: NoticeBanner;
   private readonly cssFonts: CssFontFaces;
@@ -79,20 +76,15 @@ export class CanvasInteractions {
   private hoveredNodeId: NodeId | null = null;
   private hoveredHandle: NodeHandle | null = null;
   private drag: NodeDrag | null = null;
-  /** A child being typed before it is sent (spec I4); shown as a node so the editor sits where it will appear. */
-  private draft: AddEditRequest | null = null;
   /** Node the inline editor sits on (`DRAFT_NODE_ID` while adding). */
   private editorNodeId: NodeId | null = null;
-  /** Last request sent from the inline editor, so a rejection can reopen it with the typed label (spec I5.4). */
-  private editorRequest: EditRequest | null = null;
-  private previousStatus: EditStatus;
 
   constructor(private readonly host: InteractionHost) {
     const { canvas } = host;
     this.editor = new InlineLabelEditor(canvas);
     this.notice = new NoticeBanner(canvas, () => host.edits.clearRejection());
     this.cssFonts = new CssFontFaces(canvas.ownerDocument);
-    this.previousStatus = host.edits.status;
+    this.local = new LocalEditState(host.edits);
     this.listen('pointerdown', (event) => this.onPointerDown(event));
     this.listen('pointermove', (event) => this.onPointerMove(event));
     this.listen('pointerup', (event) => this.onPointerUp(event));
@@ -112,7 +104,7 @@ export class CanvasInteractions {
     const config = this.host.config();
     this.painted =
       this.drag === null
-        ? buildScene(this.displayData(), config, this.host.extensions(), this.effectiveOverrides())
+        ? buildScene(this.local.displayData(), config, this.host.extensions(), this.local.effectiveOverrides())
         : draggedScene(this.drag, config.branch);
     return this.painted;
   }
@@ -134,19 +126,10 @@ export class CanvasInteractions {
   }
 
   onEditStatusChange(status: EditStatus): void {
-    const previous = this.previousStatus;
-    this.previousStatus = status;
-    if (status.kind === 'rejected') {
-      this.notice.show(status.reason);
-      if (status.request === this.editorRequest) this.reopenForRetry(status.request);
-    } else {
-      this.notice.hide();
-    }
-    if (status.kind === 'idle') this.editorRequest = null;
-    // A confirmed reparent lands at its new parent's layout spot, not at a position dragged under the old parent.
-    if (previous.kind === 'pending' && previous.request.type === 'move' && status.kind === 'idle') {
-      this.overrides = withoutSubtree(this.overrides, buildTree(this.host.edits.confirmedData), previous.request.nodeId);
-    }
+    const retry = this.local.onEditStatusChange(status);
+    if (status.kind === 'rejected') this.notice.show(status.reason);
+    else this.notice.hide();
+    if (retry !== null) this.reopenForRetry(retry);
     this.updateCursor();
   }
 
@@ -270,12 +253,8 @@ export class CanvasInteractions {
       this.submit({ type: 'move', nodeId: drag.nodeId, newParentId: drag.dropTargetId });
       return;
     }
-    const start = drag.base.positions.get(drag.nodeId);
-    if (start === undefined) return;
-    const offset = this.toSceneOffset(screenOffset);
-    const position = { x: start.x + offset.x, y: start.y + offset.y };
-    this.overrides = withNodeDropped(this.overrides, drag.base.tree, { nodeId: drag.nodeId, from: start, to: position });
-    this.host.onNodeReposition({ nodeId: drag.nodeId, position });
+    const reposition = this.local.dropAway(drag.base, drag.nodeId, this.toSceneOffset(screenOffset));
+    if (reposition !== null) this.host.onNodeReposition(reposition);
   }
 
   // ---- inline editing ----
@@ -292,15 +271,13 @@ export class CanvasInteractions {
   /** `side` only matters for children of the root (spec R19). */
   private openAddDraft(parentId: NodeId, side: Side | undefined, typed: string): void {
     if (this.refusedWhilePending()) return;
-    const parent = this.host.edits.confirmedData.find((candidate) => candidate.id === parentId);
-    if (parent === undefined) return;
-    const plain: AddEditRequest = { type: 'add', parentId, text: '' };
-    const draft = parent.parentId === null && side !== undefined ? { ...plain, side } : plain;
+    const draft = addDraftRequest(this.host.edits.confirmedData, parentId, side);
+    if (draft === null) return;
     this.openEditor(DRAFT_NODE_ID, typed, (text) => {
       if (text !== '') this.submitFromEditor({ ...draft, text });
     });
     // After `openEditor`, which clears any previous draft.
-    this.draft = draft;
+    this.local.showDraft(draft);
   }
 
   /** `commit` gets the trimmed label after the editor has closed. */
@@ -321,7 +298,7 @@ export class CanvasInteractions {
   private closeEditor(): void {
     this.editor.close();
     this.editorNodeId = null;
-    this.draft = null;
+    this.local.clearDraft();
     this.host.requestRepaint();
   }
 
@@ -352,7 +329,7 @@ export class CanvasInteractions {
   // ---- edits ----
 
   private submitFromEditor(request: EditRequest): void {
-    this.editorRequest = request;
+    this.local.sentFromEditor(request);
     this.submit(request);
   }
 
@@ -362,28 +339,12 @@ export class CanvasInteractions {
     if (result.kind === 'refused') this.notice.show(result.reason);
   }
 
-  /** Editors are not even opened while an edit is pending (spec I5.2), so no typing is lost to a refusal. */
+  /** Shows why an editor did not open, if it must not (see `LocalEditState.editorBlockedReason`). */
   private refusedWhilePending(): boolean {
-    if (this.host.edits.status.kind !== 'pending') return false;
-    this.notice.show(EDIT_BLOCKED_REASON);
+    const reason = this.local.editorBlockedReason();
+    if (reason === null) return false;
+    this.notice.show(reason);
     return true;
-  }
-
-  /** Pending preview, else the draft child (if its parent still exists), else the confirmed data. */
-  private displayData(): MindmapData {
-    const { edits } = this.host;
-    const draft = this.draft;
-    if (draft === null || edits.status.kind === 'pending' || findEditProblem(edits.confirmedData, draft) !== null) {
-      return edits.displayData;
-    }
-    return applyEdit(edits.confirmedData, draft, DRAFT_NODE_ID);
-  }
-
-  /** While a reparent is pending, the moved subtree previews at its new parent's layout spot (see onEditStatusChange). */
-  private effectiveOverrides(): PositionOverrides {
-    const { status, confirmedData } = this.host.edits;
-    if (status.kind !== 'pending' || status.request.type !== 'move') return this.overrides;
-    return withoutSubtree(this.overrides, buildTree(confirmedData), status.request.nodeId);
   }
 
   // ---- hover and cursor ----
