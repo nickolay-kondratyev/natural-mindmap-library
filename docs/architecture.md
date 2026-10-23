@@ -47,7 +47,7 @@ highlight / pending veil on top.
 | `extensions.ts` | Bundle of code-level extension points | `MindmapExtensions`, `DEFAULT_EXTENSIONS` |
 | `edit/` | Request -> confirm protocol (I5), default host (I6) | `EditRequest`, `EditHandler`, `EditSession`, `findEditProblem`, `applyEdit`, `InMemoryHost` |
 | `view/` | Library-local pan/zoom (I1) | `MindmapView`, `ViewController` |
-| `interaction/` | Canvas pointer interactions (I1-I5) | `CanvasInteractions` (DOM wiring), `PointerGesture` + `DRAG_THRESHOLD_PX`, `hitTest` (`nodeAt`, `nodeHandles`, `pointerTargetAt`), `InlineLabelEditor`, `NoticeBanner`, `ReparentConfirmation` + `ReparentDialog`, `NodeRepositionEvent` |
+| `interaction/` | Canvas pointer interactions (I1-I5) | `CanvasInteractions` (DOM wiring), `PointerGesture` + `DRAG_THRESHOLD_PX`, `hitTest` (`nodeAt`, `nodeHandles`, `inHoverArea`, `pointerTargetAt`), `InlineLabelEditor`, `NoticeBanner`, `ReparentConfirmation` + `ReparentDialog`, `NodeRepositionEvent` |
 | `mount.ts` | Imperative entry point | `mountMindmap` -> `MindmapHandle` |
 
 ## Config vs extensions
@@ -148,7 +148,9 @@ highlight / pending veil on top.
   order (no overrides = pipeline output untouched); a drop carries descendants' own overrides along, and a confirmed `move`
   drops the moved subtree's overrides.
   Hover buttons: "+" on the outer side (both sides for the root) opens the inline editor on a local draft child
-  (`DRAFT_NODE_ID`, not sent until Enter); "x" above non-root nodes sends `delete`. Double-click renames. Editors
+  (`DRAFT_NODE_ID`, not sent until Enter). While they show, the hovered node keeps its hover over its hover area
+  (rectangle around its box and buttons, target `near-handles`), so the pointer can cross the gap to the "+";
+  pressing there pans. No delete button: hosts send `delete` from their own UI. Double-click renames. Editors
   do not open while an edit is pending. DOM overlays (`<input>` editor, `role="alert"` notice with the rejection or
   refusal reason, `role="dialog"` reparent question) are created lazily as siblings right after the canvas, positioned via `offsetLeft/Top`. A
   rejected edit sent from the editor reopens it with the typed label (I5.4).

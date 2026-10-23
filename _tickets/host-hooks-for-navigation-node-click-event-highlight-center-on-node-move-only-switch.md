@@ -2,11 +2,12 @@
 profile: standard
 id: nid_idiv2268vh6mpy2gbnkrjlgw6_e
 title: "Host hooks for navigation: node click event, highlight, center on node, move-only switch"
-status: open
+status: in_progress
+pwd: /home/nickolaykondratyev/git_repos/nickolay-kondratyev_natural-mindmap-library/.worktree/t-idiv2268
 deps: [nid_gbj85a2pad7yofsjnf7ng26ff_e]
 links: []
 created_iso: 2026-10-23T20:13:10Z
-status_updated_iso: 2026-10-23T20:13:10Z
+status_updated_iso: 2026-10-23T20:25:29Z
 type: task
 priority: 2
 assignee: CC_WITH-nickolaykondratyev
