@@ -125,11 +125,11 @@ highlight / pending veil on top.
   `EditSession` (position overrides, the draft child, the editor's last request) and what to display, keep or
   reopen as edits go pending / confirmed / rejected). Dragging empty canvas or the root pans; wheel
   zooms at the cursor. A node drag moves its subtree over a frozen scene (no live push-apart, else the drop target
-  would be pushed out from under the pointer); dropping onto a node sends `move` after the user confirms
-  (`ReparentConfirmation` decides and holds the question; `ReparentDialog` asks, Enter confirms, Escape cancels; the
-  drop stays frozen on screen meanwhile and canvas presses are ignored; Cancel sends nothing, so the map is as before
-  the drag; skipped when `interaction.confirmReparent` is off) (the dragged subtree is never a
-  target, so self/descendant drops cannot happen by drag and `findEditProblem` still guards), dropping elsewhere
+  would be pushed out from under the pointer); dropping onto a node sends `move` (the dragged subtree is never a
+  target, so self/descendant drops cannot happen by drag and `findEditProblem` still guards) once the user confirms:
+  `ReparentConfirmation` decides and holds the question, `ReparentDialog` asks (Enter confirms, Escape cancels), the
+  drop stays frozen on screen and canvas presses are ignored meanwhile, Cancel sends nothing (the map is as before the
+  drag); no question when `interaction.confirmReparent` is off. Dropping elsewhere
   stores a library-local `PositionOverrides` entry and emits `onNodeReposition`. `buildScene(..., overrides)`
   applies overrides after the pipeline and re-runs `resolveCollisions` with the overridden subtrees pinned in drop
   order (no overrides = pipeline output untouched); a drop carries descendants' own overrides along, and a confirmed `move`

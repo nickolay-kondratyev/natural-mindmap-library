@@ -114,9 +114,9 @@ class CanvasMount implements MindmapHandle {
       fonts: () => this.fonts.fonts(),
       requestRepaint: () => this.scheduler.request(),
       onNodeReposition: (event) => options.onNodeReposition?.(event),
+      // Same path as a host `setConfig`, so an in-map change can never skip what applying settings involves.
       changeConfig: (config) => {
-        this.config = config;
-        this.scheduler.request();
+        this.setConfig(config);
         options.onConfigChange?.(config);
       },
     });

@@ -32,10 +32,6 @@ export class ReparentDialog {
 
   constructor(private readonly canvas: HTMLCanvasElement) {}
 
-  get isOpen(): boolean {
-    return this.session !== null;
-  }
-
   open(session: ReparentDialogSession): void {
     const parts = this.parts ?? this.create();
     this.session = session;
@@ -54,8 +50,8 @@ export class ReparentDialog {
     placeOverCanvas(this.parts.element, this.canvas, { x: this.canvas.clientWidth / 2, y: this.canvas.clientHeight / 2 });
   }
 
-  /** Hides without answering (e.g. the map is torn down). */
-  close(): void {
+  /** Hides and gives focus back; answering is up to the caller (`finish`). */
+  private close(): void {
     this.session = null;
     if (this.parts !== null) this.parts.element.style.display = 'none';
     const returnFocusTo = this.returnFocusTo;
