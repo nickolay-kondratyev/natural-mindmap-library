@@ -162,6 +162,8 @@ structural edit is only shown as done once the host has actually done it.
 - I3. Move (reparent): drag a node and drop it onto another node to make it that
   node's child; its subtree comes along. The drop target highlights while hovered.
   Dropping onto itself or its own descendant is refused before any request is sent.
+  The user confirms the drop first (Cancel leaves the map as before the drag); "Don't
+  ask again" turns that off as a stored setting the user can turn back on.
 - I4. Add child (hover "+" button on the node's outer side), rename (double-click to
   edit the label inline, in the real font), delete. Undo for delete is the host's
   job (e.g. Obsidian trash).

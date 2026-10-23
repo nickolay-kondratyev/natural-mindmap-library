@@ -47,13 +47,13 @@ highlight / pending veil on top.
 | `extensions.ts` | Bundle of code-level extension points | `MindmapExtensions`, `DEFAULT_EXTENSIONS` |
 | `edit/` | Request -> confirm protocol (I5), default host (I6) | `EditRequest`, `EditHandler`, `EditSession`, `findEditProblem`, `applyEdit`, `InMemoryHost` |
 | `view/` | Library-local pan/zoom (I1) | `MindmapView`, `ViewController` |
-| `interaction/` | Canvas pointer interactions (I1-I5) | `CanvasInteractions` (DOM wiring), `PointerGesture` + `DRAG_THRESHOLD_PX`, `hitTest` (`nodeAt`, `nodeHandles`, `pointerTargetAt`), `InlineLabelEditor`, `NoticeBanner`, `NodeRepositionEvent` |
+| `interaction/` | Canvas pointer interactions (I1-I5) | `CanvasInteractions` (DOM wiring), `PointerGesture` + `DRAG_THRESHOLD_PX`, `hitTest` (`nodeAt`, `nodeHandles`, `pointerTargetAt`), `InlineLabelEditor`, `NoticeBanner`, `ReparentConfirmation` + `ReparentDialog`, `NodeRepositionEvent` |
 | `mount.ts` | Imperative entry point | `mountMindmap` -> `MindmapHandle` |
 
 ## Config vs extensions
 
 - `MindmapConfig` is **plain serializable data** (theme colors, node sizing, branch width/taper, text
-  fonts, layout numbers). All optional for hosts; `resolveConfig` deep-merges over `DEFAULT_CONFIG`
+  fonts, layout numbers, interaction behavior such as `interaction.confirmReparent`). All optional for hosts; `resolveConfig` deep-merges over `DEFAULT_CONFIG`
   (objects merge, arrays such as the palette are replaced). A settings panel can be generated from its shape.
 - `MindmapExtensions` holds **functions/objects** composed in by the host: `layoutStages`
   (`null` = defaults for the configured layout type), `bowCurve`, `nodeShape`, `colorStrategy`.
@@ -110,6 +110,9 @@ highlight / pending veil on top.
   unknown `layout.type` -> default layout) and returns defaults when the load fails. `save` is fire-and-forget with one
   write in flight, later changes coalescing into one follow-up write of the latest. Failures are `console.warn`ed,
   never thrown. Opt-in: without it the host just passes `config`.
+  Settings the user changes inside the map (the reparent dialog's "Don't ask again") are applied by the mount and
+  reported via `onConfigChange(fullConfig)`; the host stores them like panel changes and passes them back as `config`
+  (a later `setConfig` replaces them otherwise).
 - **View** (I1): `screen = viewportCenter + offset + zoom * scene` (CSS px). `ViewController` reports
   changes it makes (pan, cursor-anchored zoom, API zoom/reset, the initial fit) via `onViewChange`; host `setView` is not echoed
   and, before the first paint, takes precedence over the initial fit.
@@ -122,7 +125,10 @@ highlight / pending veil on top.
   `EditSession` (position overrides, the draft child, the editor's last request) and what to display, keep or
   reopen as edits go pending / confirmed / rejected). Dragging empty canvas or the root pans; wheel
   zooms at the cursor. A node drag moves its subtree over a frozen scene (no live push-apart, else the drop target
-  would be pushed out from under the pointer); dropping onto a node sends `move` (the dragged subtree is never a
+  would be pushed out from under the pointer); dropping onto a node sends `move` after the user confirms
+  (`ReparentConfirmation` decides and holds the question; `ReparentDialog` asks, Enter confirms, Escape cancels; the
+  drop stays frozen on screen meanwhile and canvas presses are ignored; Cancel sends nothing, so the map is as before
+  the drag; skipped when `interaction.confirmReparent` is off) (the dragged subtree is never a
   target, so self/descendant drops cannot happen by drag and `findEditProblem` still guards), dropping elsewhere
   stores a library-local `PositionOverrides` entry and emits `onNodeReposition`. `buildScene(..., overrides)`
   applies overrides after the pipeline and re-runs `resolveCollisions` with the overridden subtrees pinned in drop
@@ -131,7 +137,7 @@ highlight / pending veil on top.
   Hover buttons: "+" on the outer side (both sides for the root) opens the inline editor on a local draft child
   (`DRAFT_NODE_ID`, not sent until Enter); "x" above non-root nodes sends `delete`. Double-click renames. Editors
   do not open while an edit is pending. DOM overlays (`<input>` editor, `role="alert"` notice with the rejection or
-  refusal reason) are created lazily as siblings right after the canvas, positioned via `offsetLeft/Top`. A
+  refusal reason, `role="dialog"` reparent question) are created lazily as siblings right after the canvas, positioned via `offsetLeft/Top`. A
   rejected edit sent from the editor reopens it with the typed label (I5.4).
   `MindmapHandle.getNodeScreenBox` / `getData` expose node boxes and confirmed data (host UI, E2E).
 
@@ -148,7 +154,8 @@ page and loads none of the runner code or CSS.
   a control without panel code. Numbers need a slider range in `settingSpecs.ts` `NUMBER_RANGES`, a `Record` over
   every numeric config path, so a new number does not compile until it has one. The runner passes the full
   `MindmapConfig` as `config`; "Reset settings" puts `DEFAULT_CONFIG` back. `usePersistedConfig` loads the settings
-  through `SettingsPersistence` over `LocalStorageSettings` before the runner renders and saves every change.
+  through `SettingsPersistence` over `LocalStorageSettings` before the runner renders and saves every change, including
+  the map's own `onConfigChange`.
 
 ## Testing
 

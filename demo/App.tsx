@@ -37,6 +37,7 @@ export function App() {
           onFontStatusChange={setFontStatus}
           onEditRequest={host.onEditRequest}
           onEditStatusChange={host.onEditStatusChange}
+          onConfigChange={(next) => updateConfig(() => next)}
         />
         <FontStatusBadge status={fontStatus} />
       </main>

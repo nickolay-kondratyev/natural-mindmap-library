@@ -7,6 +7,7 @@ import {
   type FontFetcher,
   type LabelFontStatus,
   type MindmapData,
+  type MindmapConfig,
   type MindmapExtensions,
   type MindmapHandle,
   type MindmapView,
@@ -30,6 +31,8 @@ export interface MindmapProps {
   /** Pan/zoom by the user or the library (incl. the initial fit-to-content); not fired for `ref.setView`. */
   readonly onViewChange?: (view: MindmapView) => void;
   readonly onNodeReposition?: (event: NodeRepositionEvent) => void;
+  /** A setting the user changed inside the map (see `MountOptions.onConfigChange`); store it and pass it back as `config`. */
+  readonly onConfigChange?: (config: MindmapConfig) => void;
 }
 
 /** Imperative API exposed through `ref`: zoom/reset buttons, reading/setting the view, sending edits. */
@@ -47,7 +50,7 @@ export type MindmapApi = Pick<
   | 'resetView'
 >;
 
-type CallbackProp = 'onEditRequest' | 'onEditStatusChange' | 'onViewChange' | 'onNodeReposition' | 'onFontStatusChange';
+type CallbackProp = 'onEditRequest' | 'onEditStatusChange' | 'onViewChange' | 'onNodeReposition' | 'onFontStatusChange' | 'onConfigChange';
 /** Every callback key present (possibly `undefined`), so the latest props can be copied in one assignment. */
 type MindmapCallbacks = { readonly [K in CallbackProp]: MindmapProps[K] };
 
@@ -70,13 +73,14 @@ export const Mindmap = forwardRef<MindmapApi, MindmapProps>(function Mindmap(
     onViewChange,
     onNodeReposition,
     onFontStatusChange,
+    onConfigChange,
   },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const handleRef = useRef<MindmapHandle | null>(null);
   // The core is mounted once, so it reads callbacks through this ref to always call the latest props.
-  const callbacks: MindmapCallbacks = { onEditRequest, onEditStatusChange, onViewChange, onNodeReposition, onFontStatusChange };
+  const callbacks: MindmapCallbacks = { onEditRequest, onEditStatusChange, onViewChange, onNodeReposition, onFontStatusChange, onConfigChange };
   const callbacksRef = useRef(callbacks);
   useLayoutEffect(() => {
     callbacksRef.current = callbacks;
@@ -96,6 +100,7 @@ export const Mindmap = forwardRef<MindmapApi, MindmapProps>(function Mindmap(
       onViewChange: (view) => callbacksRef.current.onViewChange?.(view),
       onNodeReposition: (event) => callbacksRef.current.onNodeReposition?.(event),
       onFontStatusChange: (status) => callbacksRef.current.onFontStatusChange?.(status),
+      onConfigChange: (next) => callbacksRef.current.onConfigChange?.(next),
     });
     handleRef.current = handle;
     const syncSize = () => handle.resize(canvas.clientWidth, canvas.clientHeight, window.devicePixelRatio);

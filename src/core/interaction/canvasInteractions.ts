@@ -20,6 +20,8 @@ import { InlineLabelEditor, type LabelEditorPlacement } from './inlineLabelEdito
 import { addDraftRequest, DRAFT_NODE_ID, LocalEditState } from './localEditState';
 import { NoticeBanner } from './noticeBanner';
 import { PointerGesture, type PressTarget } from './pointerGesture';
+import { ReparentConfirmation } from './reparentConfirmation';
+import { ReparentDialog } from './reparentDialog';
 import type { NodeRepositionEvent } from './repositionEvent';
 
 /** What the interactions need from the mount; getters because config/extensions/fonts change over time. */
@@ -32,6 +34,8 @@ export interface InteractionHost {
   fonts(): LabelFonts;
   requestRepaint(): void;
   onNodeReposition(event: NodeRepositionEvent): void;
+  /** The user changed a setting from inside the map (e.g. "Don't ask again"); the mount applies and reports it. */
+  changeConfig(config: MindmapConfig): void;
 }
 
 /** A node drag in progress (spec I2/I3). */
@@ -56,10 +60,10 @@ const CURSOR = { idle: '', grab: 'grab', grabbing: 'grabbing', button: 'pointer'
 
 /**
  * Canvas pointer interactions (spec I1-I5): pan/zoom, drag to reposition (push-apart on drop) or to reparent
- * (drop onto a node), hover "+" / "x" buttons, double-click inline rename, plus the pending / rejected feedback.
+ * (drop onto a node, after a confirmation the user can turn off), hover "+" / "x" buttons, double-click inline rename, plus the pending / rejected feedback.
  * Structural edits only ever go through `EditSession` (the host confirms); repositions are library-local
  * overrides reported via `onNodeReposition`. This class is the DOM wiring; the decisions live in DOM-free units
- * (`PointerGesture`, `hitTest`, `LocalEditState`).
+ * (`PointerGesture`, `hitTest`, `LocalEditState`, `ReparentConfirmation`).
  *
  * WHY-NOT live push-apart while dragging: the drop target would always be pushed out from under the pointer,
  * making reparenting impossible. Other nodes stay put during the drag and yield once it is dropped.
@@ -69,6 +73,8 @@ export class CanvasInteractions {
   private readonly local: LocalEditState;
   private readonly editor: InlineLabelEditor;
   private readonly notice: NoticeBanner;
+  private readonly reparent: ReparentConfirmation;
+  private readonly reparentDialog: ReparentDialog;
   private readonly cssFonts: CssFontFaces;
   private readonly removeListeners: (() => void)[] = [];
   /** Last painted scene: what the user sees, so it is what pointer events hit-test against. */
@@ -76,6 +82,8 @@ export class CanvasInteractions {
   private hoveredNodeId: NodeId | null = null;
   private hoveredHandle: NodeHandle | null = null;
   private drag: NodeDrag | null = null;
+  /** A drop onto a node waiting for the user's answer (spec I3); painted frozen at the drop meanwhile. */
+  private askedDrop: NodeDrag | null = null;
   /** Node the inline editor sits on (`DRAFT_NODE_ID` while adding). */
   private editorNodeId: NodeId | null = null;
 
@@ -85,6 +93,12 @@ export class CanvasInteractions {
     this.notice = new NoticeBanner(canvas, () => host.edits.clearRejection());
     this.cssFonts = new CssFontFaces(canvas.ownerDocument);
     this.local = new LocalEditState(host.edits);
+    this.reparentDialog = new ReparentDialog(canvas);
+    this.reparent = new ReparentConfirmation({
+      config: () => host.config(),
+      changeConfig: (config) => host.changeConfig(config),
+      send: (request) => this.submit(request),
+    });
     this.listen('pointerdown', (event) => this.onPointerDown(event));
     this.listen('pointermove', (event) => this.onPointerMove(event));
     this.listen('pointerup', (event) => this.onPointerUp(event));
@@ -102,10 +116,11 @@ export class CanvasInteractions {
    */
   sceneToPaint(): Scene {
     const config = this.host.config();
+    const drag = this.shownDrag();
     this.painted =
-      this.drag === null
+      drag === null
         ? buildScene(this.local.displayData(), config, this.host.extensions(), this.local.effectiveOverrides())
-        : draggedScene(this.drag, config.branch);
+        : draggedScene(drag, config.branch);
     return this.painted;
   }
 
@@ -115,12 +130,13 @@ export class CanvasInteractions {
     drawInteractionOverlay(ctx, scene, this.host.config(), this.host.extensions(), viewport, this.host.view.view, {
       handles: this.visibleHandles(scene),
       hoveredHandle: this.hoveredHandle,
-      dropTargetId: this.drag?.dropTargetId ?? null,
+      dropTargetId: this.shownDrag()?.dropTargetId ?? null,
       pendingNodeId,
       timeMs: performance.now(),
     });
     this.editor.place(this.editorNodeId === null ? null : this.editorPlacement(scene, this.editorNodeId));
     this.notice.place();
+    this.reparentDialog.place();
     // Keeps the busy ring moving until the host answers.
     if (pendingNodeId !== null) this.host.requestRepaint();
   }
@@ -146,13 +162,15 @@ export class CanvasInteractions {
     for (const remove of this.removeListeners) remove();
     this.editor.dispose();
     this.notice.dispose();
+    this.reparentDialog.dispose();
     this.cssFonts.dispose();
   }
 
   // ---- pointer events ----
 
   private onPointerDown(event: PointerEvent): void {
-    if (event.button !== PRIMARY_BUTTON || this.painted === null) return;
+    // While a drop is being asked about, the map waits for the answer instead of starting another gesture.
+    if (event.button !== PRIMARY_BUTTON || this.painted === null || this.askedDrop !== null) return;
     const screen = this.canvasPoint(event);
     this.gesture.press(screen, this.pressTargetAt(this.painted, screen));
     this.host.canvas.setPointerCapture(event.pointerId);
@@ -194,7 +212,7 @@ export class CanvasInteractions {
   }
 
   private onDoubleClick(event: MouseEvent): void {
-    if (this.painted === null) return;
+    if (this.painted === null || this.askedDrop !== null) return;
     const nodeId = nodeAt(this.painted, this.host.view.screenToScene(this.canvasPoint(event)), this.host.extensions().nodeShape);
     if (nodeId !== null && !isTransient(nodeId)) this.openRename(nodeId);
   }
@@ -250,11 +268,31 @@ export class CanvasInteractions {
     if (drag === null) return;
     this.host.requestRepaint();
     if (drag.dropTargetId !== null) {
-      this.submit({ type: 'move', nodeId: drag.nodeId, newParentId: drag.dropTargetId });
+      this.dropOnto(drag, drag.dropTargetId);
       return;
     }
     const reposition = this.local.dropAway(drag.base, drag.nodeId, this.toSceneOffset(screenOffset));
     if (reposition !== null) this.host.onNodeReposition(reposition);
+  }
+
+  /** Reparents, after asking unless the user turned that off. Answering clears the frozen drop either way. */
+  private dropOnto(drag: NodeDrag, newParentId: NodeId): void {
+    const question = this.reparent.drop({ type: 'move', nodeId: drag.nodeId, newParentId }, this.host.edits.confirmedData);
+    if (question === null) return;
+    this.askedDrop = drag;
+    this.reparentDialog.open({
+      text: question.text,
+      onConfirm: (answer) => this.endAskedDrop(() => this.reparent.confirm(answer)),
+      onCancel: () => this.endAskedDrop(() => this.reparent.cancel()),
+    });
+    this.updateCursor();
+  }
+
+  private endAskedDrop(answer: () => void): void {
+    this.askedDrop = null;
+    this.host.requestRepaint();
+    answer();
+    this.updateCursor();
   }
 
   // ---- inline editing ----
@@ -350,7 +388,7 @@ export class CanvasInteractions {
   // ---- hover and cursor ----
 
   private updateHover(screen: Point): void {
-    if (this.painted === null || this.drag !== null) return;
+    if (this.painted === null || this.shownDrag() !== null) return;
     const target = this.targetAt(this.painted, screen);
     const nodeId = target.kind === 'node' ? target.nodeId : target.kind === 'handle' ? target.handle.nodeId : null;
     this.setHover(nodeId !== null && !isTransient(nodeId) ? nodeId : null, target.kind === 'handle' ? target.handle : null);
@@ -369,6 +407,7 @@ export class CanvasInteractions {
   }
 
   private cursorFor(target: PointerTarget | null): string {
+    if (this.askedDrop !== null) return CURSOR.idle;
     if (this.drag !== null) return CURSOR.grabbing;
     if (this.host.edits.status.kind === 'pending') return CURSOR.busy;
     if (target?.kind === 'handle') return CURSOR.button;
@@ -376,13 +415,18 @@ export class CanvasInteractions {
     return CURSOR.idle;
   }
 
-  /** Buttons hide while dragging and while an edit is pending (further edits are blocked, spec I5.2). */
+  /** Buttons hide while dragging (or asking about a drop) and while an edit is pending (further edits are blocked, spec I5.2). */
   private visibleHandles(scene: Scene): readonly NodeHandle[] {
-    if (this.hoveredNodeId === null || this.drag !== null || this.host.edits.status.kind === 'pending') return [];
+    if (this.hoveredNodeId === null || this.shownDrag() !== null || this.host.edits.status.kind === 'pending') return [];
     return nodeHandles(scene, this.hoveredNodeId);
   }
 
   // ---- helpers ----
+
+  /** The live drag, else the drop waiting for the user's answer. */
+  private shownDrag(): NodeDrag | null {
+    return this.drag ?? this.askedDrop;
+  }
 
   private targetAt(scene: Scene, screen: Point): PointerTarget {
     const activeNodeId = this.visibleHandles(scene).length > 0 ? this.hoveredNodeId : null;
