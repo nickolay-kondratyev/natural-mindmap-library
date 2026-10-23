@@ -1,17 +1,22 @@
 import { useCallback, useRef, useState } from 'react';
-import { DEFAULT_CONFIG, type LabelFontStatus, type MindmapConfig } from 'natural-mindmap';
+import { SettingsPersistence, type LabelFontStatus } from 'natural-mindmap';
 import { Mindmap, type MindmapApi } from 'natural-mindmap/react';
 import { FontStatusBadge } from './FontStatusBadge';
 import { HostSimulationControls } from './host/HostSimulationControls';
 import { useDemoHost } from './host/demoHost';
 import { MapControls } from './MapControls';
+import { LocalStorageSettings } from './settings/localStorageSettings';
 import { SettingsPanel } from './settings/SettingsPanel';
+import { usePersistedConfig } from './settings/usePersistedConfig';
 import { exposeMindmapApi } from './testHooks';
+
+/** Settings survive page reloads, the way a real host (e.g. Obsidian plugin data) would keep them. */
+const SETTINGS_PERSISTENCE = new SettingsPersistence(new LocalStorageSettings(window.localStorage));
 
 /** Demo runner (spec §6a). Talks to the library only through its public entry points (D1). */
 export function App() {
   const host = useDemoHost();
-  const [config, setConfig] = useState<MindmapConfig>(DEFAULT_CONFIG);
+  const { config, updateConfig } = usePersistedConfig(SETTINGS_PERSISTENCE);
   const [fontStatus, setFontStatus] = useState<LabelFontStatus | null>(null);
   const apiRef = useRef<MindmapApi | null>(null);
   const attachApi = useCallback((api: MindmapApi | null) => {
@@ -19,6 +24,8 @@ export function App() {
     exposeMindmapApi(api);
   }, []);
 
+  // Stored settings load within a tick from localStorage; rendering nothing until then avoids a flash of defaults.
+  if (config === null) return null;
   return (
     <div className="runner">
       <main className="runner__canvas">
@@ -40,7 +47,7 @@ export function App() {
         </header>
         <MapControls api={() => apiRef.current} onResetMap={host.resetMap} />
         <HostSimulationControls settings={host.simulation} onChange={host.setSimulation} editStatus={host.editStatus} />
-        <SettingsPanel config={config} onChange={setConfig} />
+        <SettingsPanel config={config} onChange={updateConfig} />
       </aside>
     </div>
   );

@@ -29,6 +29,14 @@ test.describe('demo runner (spec §6a)', () => {
     await expect.poll(() => rootWidth(page)).toBe(before);
   });
 
+  test('GIVEN a changed setting WHEN the page is reloaded THEN the setting is kept (settings storage)', async ({ page }) => {
+    await page.getByTestId(ROOT_WIDTH_SETTING).fill(WIDER_ROOT_PX);
+    // The demo stores settings in localStorage; reloading before the write would test nothing.
+    await page.waitForFunction(() => window.localStorage.length > 0);
+    await page.reload();
+    await expect(page.getByTestId(ROOT_WIDTH_SETTING)).toHaveValue(WIDER_ROOT_PX);
+  });
+
   test('GIVEN a slow host WHEN a node is renamed THEN the change shows as waiting until the host saves it (D5)', async ({ page }) => {
     await page.getByLabel('Answer delay').fill(HOST_DELAY_MS);
     await renameByDoubleClick(page, 'hamlet', 'Ophelia');
