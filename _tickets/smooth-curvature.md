@@ -1,6 +1,6 @@
 ---
 id: nid_ff5xjpw3jbxn30sdv3d5i8haa_e
-title: "Untitled"
+title: "smooth curvature"
 status: open
 deps: []
 links: []
