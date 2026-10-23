@@ -17,6 +17,8 @@ export interface ThemeColorConfig {
   readonly branchText: string;
   /** Glyph outline color for labels with `outlineWidthPx > 0`. */
   readonly textOutline: string;
+  /** Ring around the node the host highlights (`setHighlightedNode`), e.g. the heading the editor cursor is in. */
+  readonly highlight: string;
   /** Ordered so neighbouring first-level branches contrast strongly (spec R11). */
   readonly palette: readonly PaletteColor[];
 }
@@ -33,6 +35,7 @@ export const DEFAULT_THEME: ThemeConfig = {
     nodeText: '#ffffff',
     branchText: '#ffffff',
     textOutline: 'rgba(11, 16, 32, 0.55)',
+    highlight: '#ffffff',
     palette: [
       { fill: '#d4a53a', outline: '#9a7420' }, // goldenrod
       { fill: '#6495ed', outline: '#3f66b3' }, // cornflower blue

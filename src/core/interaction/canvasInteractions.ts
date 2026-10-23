@@ -16,11 +16,13 @@ import type { NodeBox } from '../shape/nodeShape';
 import type { LabelFonts } from '../text/labelFontLoader';
 import type { LoadedFont } from '../text/loadedFont';
 import type { ViewController } from '../view/viewController';
-import { nodeAt, nodeBoxOf, nodeHandles, pointerTargetAt, sameHandle, type NodeHandle, type PointerTarget } from './hitTest';
+import { editorAllowed, shownHandles } from './editAffordances';
+import { nodeAt, nodeBoxOf, pointerTargetAt, sameHandle, type NodeHandle, type PointerTarget } from './hitTest';
 import { InlineLabelEditor, type LabelEditorPlacement } from './inlineLabelEditor';
 import { addDraftRequest, DRAFT_NODE_ID, LocalEditState } from './localEditState';
 import { NoticeBanner } from './noticeBanner';
-import { PointerGesture, type PressTarget } from './pointerGesture';
+import { nodeClickEvent, type ModifierKeys, type NodeClickEvent } from './nodeClickEvent';
+import { clickedNodeId, PointerGesture, type PressTarget } from './pointerGesture';
 import { ReparentConfirmation } from './reparentConfirmation';
 import { ReparentDialog } from './reparentDialog';
 import type { NodeRepositionEvent } from './repositionEvent';
@@ -37,6 +39,7 @@ export interface InteractionHost {
   cssFontFamily(font: LoadedFont | null): string;
   requestRepaint(): void;
   onNodeReposition(event: NodeRepositionEvent): void;
+  onNodeClick(event: NodeClickEvent): void;
   /** The user changed a setting from inside the map (e.g. "Don't ask again"); the mount applies and reports it. */
   changeConfig(config: MindmapConfig): void;
 }
@@ -63,7 +66,9 @@ const CURSOR = { idle: '', grab: 'grab', grabbing: 'grabbing', button: 'pointer'
 
 /**
  * Canvas pointer interactions (spec I1-I5): pan/zoom, drag to reposition (push-apart on drop) or to reparent
- * (drop onto a node, after a confirmation the user can turn off), hover "+" button, double-click inline rename, plus the pending / rejected feedback.
+ * (drop onto a node, after a confirmation the user can turn off), hover "+" button, double-click inline rename (both
+ * can be switched off in config), node clicks reported via `onNodeClick`, the host's highlight, plus the pending /
+ * rejected feedback.
  * Structural edits only ever go through `EditSession` (the host confirms); repositions are library-local
  * overrides reported via `onNodeReposition`. This class is the DOM wiring; the decisions live in DOM-free units
  * (`PointerGesture`, `hitTest`, `LocalEditState`, `ReparentConfirmation`).
@@ -84,6 +89,8 @@ export class CanvasInteractions {
   private readonly buildScene = cachedSceneBuilder();
   private hoveredNodeId: NodeId | null = null;
   private hoveredHandle: NodeHandle | null = null;
+  /** Set by the host (`setHighlightedNode`); painted as an overlay, so it never rebuilds the scene. */
+  private highlightedNodeId: NodeId | null = null;
   private drag: NodeDrag | null = null;
   /** A drop onto a node waiting for the user's answer (spec I3); painted frozen at the drop meanwhile. */
   private askedDrop: NodeDrag | null = null;
@@ -133,6 +140,7 @@ export class CanvasInteractions {
     drawInteractionOverlay(ctx, scene, this.host.config(), this.host.extensions(), viewport, this.host.view.view, {
       handles: this.visibleHandles(scene),
       hoveredHandle: this.hoveredHandle,
+      highlightedNodeId: this.highlightedNodeId,
       dropTargetId: this.shownDrag()?.dropTargetId ?? null,
       pendingNodeId,
       timeMs: performance.now(),
@@ -142,6 +150,13 @@ export class CanvasInteractions {
     this.reparentDialog.place();
     // Keeps the busy ring moving until the host answers.
     if (pendingNodeId !== null) this.host.requestRepaint();
+  }
+
+  /** An unknown id simply paints no ring (e.g. the host's node is not in the data yet). */
+  setHighlightedNode(nodeId: NodeId | null): void {
+    if (nodeId === this.highlightedNodeId) return;
+    this.highlightedNodeId = nodeId;
+    this.host.requestRepaint();
   }
 
   onEditStatusChange(status: EditStatus): void {
@@ -204,7 +219,7 @@ export class CanvasInteractions {
       case 'none':
         break;
       case 'click':
-        this.onClick(end.target);
+        this.onClick(end.target, event);
         break;
       case 'drag-end':
         this.finishDrag(end.offset);
@@ -231,7 +246,10 @@ export class CanvasInteractions {
     this.host.requestRepaint();
   }
 
-  private onClick(target: PressTarget): void {
+  /** Reported at once, even as the first half of a double-click (see `clickedNodeId`). */
+  private onClick(target: PressTarget, keys: ModifierKeys): void {
+    const nodeId = clickedNodeId(target);
+    if (nodeId !== null) this.host.onNodeClick(nodeClickEvent(nodeId, keys));
     if (target.kind !== 'handle') return;
     const { handle } = target;
     this.openAddDraft(handle.nodeId, handle.side, '');
@@ -299,7 +317,7 @@ export class CanvasInteractions {
   // ---- inline editing ----
 
   private openRename(nodeId: NodeId, typed?: string): void {
-    if (this.refusedWhilePending()) return;
+    if (!editorAllowed(this.host.config().interaction, 'rename') || this.refusedWhilePending()) return;
     const node = this.host.edits.confirmedData.find((candidate) => candidate.id === nodeId);
     if (node === undefined) return;
     this.openEditor(nodeId, typed ?? node.text, (text) => {
@@ -309,7 +327,7 @@ export class CanvasInteractions {
 
   /** `side` only matters for children of the root (spec R19). */
   private openAddDraft(parentId: NodeId, side: Side | undefined, typed: string): void {
-    if (this.refusedWhilePending()) return;
+    if (!editorAllowed(this.host.config().interaction, 'add') || this.refusedWhilePending()) return;
     const draft = addDraftRequest(this.host.edits.confirmedData, parentId, side);
     if (draft === null) return;
     this.openEditor(DRAFT_NODE_ID, typed, (text) => {
@@ -416,10 +434,10 @@ export class CanvasInteractions {
     return CURSOR.idle;
   }
 
-  /** Buttons hide while dragging (or asking about a drop) and while an edit is pending (further edits are blocked, spec I5.2). */
+  /** Buttons hide while dragging (or asking about a drop), while an edit is pending, and when switched off in config. */
   private visibleHandles(scene: Scene): readonly NodeHandle[] {
-    if (this.hoveredNodeId === null || this.shownDrag() !== null || this.host.edits.status.kind === 'pending') return [];
-    return nodeHandles(scene, this.hoveredNodeId);
+    const busy = this.shownDrag() !== null || this.host.edits.status.kind === 'pending';
+    return shownHandles(scene, { hoveredNodeId: this.hoveredNodeId, busy, interaction: this.host.config().interaction });
   }
 
   // ---- helpers ----
@@ -440,8 +458,9 @@ export class CanvasInteractions {
       case 'handle':
         return target;
       case 'node':
-        // The root never moves (spec R23), so dragging it pans like empty canvas.
-        return this.isMovable(scene, target.nodeId) ? target : CANVAS_PRESS;
+        if (isTransient(target.nodeId)) return CANVAS_PRESS;
+        // The root never moves (spec R23), so dragging it pans like empty canvas; a click still reports it.
+        return this.isMovable(scene, target.nodeId) ? target : { kind: 'fixed-node', nodeId: target.nodeId };
       case 'near-handles':
       case 'empty':
         return CANVAS_PRESS;

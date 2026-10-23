@@ -11,6 +11,7 @@ import {
   type MindmapExtensions,
   type MindmapHandle,
   type MindmapView,
+  type NodeClickEvent,
   type NodeRepositionEvent,
   type PartialMindmapConfig,
 } from '../core/index';
@@ -31,11 +32,13 @@ export interface MindmapProps {
   /** Pan/zoom by the user or the library (incl. the initial fit-to-content); not fired for `ref.setView`. */
   readonly onViewChange?: (view: MindmapView) => void;
   readonly onNodeReposition?: (event: NodeRepositionEvent) => void;
+  /** A click on a node with its modifier keys (see `MountOptions.onNodeClick`); a double-click fires twice. */
+  readonly onNodeClick?: (event: NodeClickEvent) => void;
   /** A setting the user changed inside the map (see `MountOptions.onConfigChange`); store it and pass it back as `config`. */
   readonly onConfigChange?: (config: MindmapConfig) => void;
 }
 
-/** Imperative API exposed through `ref`: zoom/reset buttons, reading/setting the view, sending edits. */
+/** Imperative API exposed through `ref`: zoom/reset buttons, reading/setting the view, highlight and centering, sending edits. */
 export type MindmapApi = Pick<
   MindmapHandle,
   | 'requestEdit'
@@ -45,12 +48,21 @@ export type MindmapApi = Pick<
   | 'getNodeScreenBox'
   | 'getView'
   | 'setView'
+  | 'setHighlightedNode'
+  | 'centerOnNode'
   | 'zoomIn'
   | 'zoomOut'
   | 'resetView'
 >;
 
-type CallbackProp = 'onEditRequest' | 'onEditStatusChange' | 'onViewChange' | 'onNodeReposition' | 'onFontStatusChange' | 'onConfigChange';
+type CallbackProp =
+  | 'onEditRequest'
+  | 'onEditStatusChange'
+  | 'onViewChange'
+  | 'onNodeReposition'
+  | 'onNodeClick'
+  | 'onFontStatusChange'
+  | 'onConfigChange';
 /** Every callback key present (possibly `undefined`), so the latest props can be copied in one assignment. */
 type MindmapCallbacks = { readonly [K in CallbackProp]: MindmapProps[K] };
 
@@ -72,6 +84,7 @@ export const Mindmap = forwardRef<MindmapApi, MindmapProps>(function Mindmap(
     onEditStatusChange,
     onViewChange,
     onNodeReposition,
+    onNodeClick,
     onFontStatusChange,
     onConfigChange,
   },
@@ -80,14 +93,23 @@ export const Mindmap = forwardRef<MindmapApi, MindmapProps>(function Mindmap(
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const handleRef = useRef<MindmapHandle | null>(null);
   // The core is mounted once, so it reads callbacks through this ref to always call the latest props.
-  const callbacks: MindmapCallbacks = { onEditRequest, onEditStatusChange, onViewChange, onNodeReposition, onFontStatusChange, onConfigChange };
+  const callbacks: MindmapCallbacks = {
+    onEditRequest,
+    onEditStatusChange,
+    onViewChange,
+    onNodeReposition,
+    onNodeClick,
+    onFontStatusChange,
+    onConfigChange,
+  };
   const callbacksRef = useRef(callbacks);
   useLayoutEffect(() => {
     callbacksRef.current = callbacks;
   });
-  useImperativeHandle(ref, () => apiDelegatingTo(handleRef), []);
-
-  useEffect(() => {
+  // A layout effect declared before `useImperativeHandle`: React runs both in declaration order in the same commit,
+  // so the ref is attached only once the core is mounted. WHY-NOT a passive `useEffect`: it runs after the ref is
+  // attached (after paint), leaving a window where the ref exists but every call throws "not mounted".
+  useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (canvas === null) return;
     const handle = mountMindmap(canvas, {
@@ -99,6 +121,7 @@ export const Mindmap = forwardRef<MindmapApi, MindmapProps>(function Mindmap(
       onEditStatusChange: (status) => callbacksRef.current.onEditStatusChange?.(status),
       onViewChange: (view) => callbacksRef.current.onViewChange?.(view),
       onNodeReposition: (event) => callbacksRef.current.onNodeReposition?.(event),
+      onNodeClick: (event) => callbacksRef.current.onNodeClick?.(event),
       onFontStatusChange: (status) => callbacksRef.current.onFontStatusChange?.(status),
       onConfigChange: (next) => callbacksRef.current.onConfigChange?.(next),
     });
@@ -114,6 +137,7 @@ export const Mindmap = forwardRef<MindmapApi, MindmapProps>(function Mindmap(
     };
     // Mount once; prop updates are forwarded by the effects below so the canvas is not torn down per change.
   }, []);
+  useImperativeHandle(ref, () => apiDelegatingTo(handleRef), []);
 
   useEffect(() => {
     handleRef.current?.setData(data);
@@ -142,6 +166,8 @@ function apiDelegatingTo(handleRef: { readonly current: MindmapHandle | null }):
     getNodeScreenBox: (nodeId) => handle().getNodeScreenBox(nodeId),
     getView: () => handle().getView(),
     setView: (view) => handle().setView(view),
+    setHighlightedNode: (nodeId) => handle().setHighlightedNode(nodeId),
+    centerOnNode: (nodeId) => handle().centerOnNode(nodeId),
     zoomIn: () => handle().zoomIn(),
     zoomOut: () => handle().zoomOut(),
     resetView: () => handle().resetView(),

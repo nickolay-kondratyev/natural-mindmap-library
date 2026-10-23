@@ -5,7 +5,8 @@ One npm package, two entry points:
 - `natural-mindmap` (`src/index.ts` -> `src/core/`): framework-free TypeScript. **Never imports React**
   (guarded by `src/core/noReactImports.test.ts`).
 - `natural-mindmap/react` (`src/react/`): `<Mindmap>` component that mounts the core onto a canvas and
-  syncs size / device pixel ratio with a `ResizeObserver`.
+  syncs size / device pixel ratio with a `ResizeObserver`. It mounts in a layout effect before attaching its ref, so a
+  non-null ref (`MindmapApi`) is always usable (`e2e/mindmapRef.spec.ts`).
 
 The demo (`demo/`) and E2E tests import only those two names (Vite/Vitest alias in `vite.shared.ts`),
 so they prove the public API is sufficient (spec D1).
@@ -56,13 +57,13 @@ branches per pointer move, over a frozen base scene.
 | `extensions.ts` | Bundle of code-level extension points | `MindmapExtensions`, `DEFAULT_EXTENSIONS` |
 | `edit/` | Request -> confirm protocol (I5), default host (I6) | `EditRequest`, `EditHandler`, `EditSession`, `findEditProblem`, `applyEdit`, `InMemoryHost` |
 | `view/` | Library-local pan/zoom (I1) | `MindmapView`, `ViewController` |
-| `interaction/` | Canvas pointer interactions (I1-I5) | `CanvasInteractions` (DOM wiring), `PointerGesture` + `DRAG_THRESHOLD_PX`, `hitTest` (`nodeAt`, `nodeHandles`, `inHoverArea`, `pointerTargetAt`), `InlineLabelEditor`, `NoticeBanner`, `ReparentConfirmation` + `ReparentDialog`, `NodeRepositionEvent` |
+| `interaction/` | Canvas pointer interactions (I1-I5) | `CanvasInteractions` (DOM wiring), `PointerGesture` + `DRAG_THRESHOLD_PX` + `clickedNodeId`, `hitTest` (`nodeAt`, `nodeHandles`, `inHoverArea`, `pointerTargetAt`), `editAffordances` (`shownHandles`, `editorAllowed`), `NodeClickEvent`, `InlineLabelEditor`, `NoticeBanner`, `ReparentConfirmation` + `ReparentDialog`, `NodeRepositionEvent` |
 | `mount.ts` | Imperative entry point | `mountMindmap` -> `MindmapHandle` |
 
 ## Config vs extensions
 
 - `MindmapConfig` is **plain serializable data** (theme colors, node sizing, branch width/taper, text
-  fonts, layout numbers, interaction behavior such as `interaction.confirmReparent`). All optional for hosts; `resolveConfig` deep-merges over `DEFAULT_CONFIG`
+  fonts, layout numbers, interaction behavior such as `interaction.confirmReparent` and the `allowAdd` / `allowRename` / `allowDelete` switches). All optional for hosts; `resolveConfig` deep-merges over `DEFAULT_CONFIG`
   (objects merge, arrays such as the palette are replaced). A settings panel can be generated from its shape.
 - `MindmapExtensions` holds **functions/objects** composed in by the host: `layoutStages`
   (`null` = defaults for the configured layout type), `bowCurve`, `nodeShape`, `colorStrategy`.
@@ -143,6 +144,8 @@ branches per pointer move, over a frozen base scene.
   Fit-to-content (`view/fitView.ts`): every paint feeds `contentBounds(positions, sizes)` to the controller; the
   first paint on a sized viewport fits the whole map with `FIT_MARGIN_PX` (never above zoom 1) and `reset()`
   returns to that fit. Later data/resize changes leave the view alone.
+  `centerOnNode(id)` is applied on the next paint (where the painted scene knows the node's position), after the
+  initial fit, so it keeps the zoom; reported like other library changes; an id not on the map does nothing.
 - **Pointer interactions** (I1-I5): `CanvasInteractions` is the only DOM-event code; the decisions are pure and
   unit-tested (`PointerGesture`: click vs pan vs node drag past `DRAG_THRESHOLD_PX`; `hitTest`: point -> node /
   hover button, in scene coordinates against the last painted scene; `LocalEditState`: library-local state over
@@ -162,7 +165,16 @@ branches per pointer move, over a frozen base scene.
   (`DRAFT_NODE_ID`, not sent until Enter). While they show, the hovered node keeps its hover over its hover area
   (rectangle around its box and buttons, target `near-handles`), so the pointer can cross the gap to the "+";
   pressing there pans. No delete button: hosts send `delete` from their own UI. Double-click renames. Editors
-  do not open while an edit is pending. DOM overlays (`<input>` editor, `role="alert"` notice with the rejection or
+  do not open while an edit is pending. `interaction.allowAdd` / `allowRename` off hide the "+" (`shownHandles`) and
+  keep the editor shut (`editorAllowed`), giving a move-only map; `allowDelete` is reserved for a future in-map
+  delete control. The switches gate only the map's own controls, never the host's `requestEdit`.
+  Node clicks (`onNodeClick`, `NodeClickEvent` with node id + DOM modifier keys): a press released within the drag
+  threshold on a node, the root included (pressing it still pans: press target `fixed-node`). Hover buttons, their
+  hover area and bare canvas are not node clicks (`clickedNodeId`). Click rule: every click is reported at once, so a
+  double-click is two clicks plus the rename when renaming is on. WHY-NOT delay clicks by the double-click
+  interval: it lags every navigation click, while jumping to the same place twice is harmless (and move-only maps
+  have no rename anyway). Host highlight (`setHighlightedNode`): a ring in `theme.color.highlight` painted by the
+  overlay, so it never rebuilds the scene; an unknown id draws nothing. DOM overlays (`<input>` editor, `role="alert"` notice with the rejection or
   refusal reason, `role="dialog"` reparent question) are created lazily as siblings right after the canvas, positioned via `offsetLeft/Top`. A
   rejected edit sent from the editor reopens it with the typed label (I5.4).
   `MindmapHandle.getNodeScreenBox` / `getData` expose node boxes and confirmed data (host UI, E2E).

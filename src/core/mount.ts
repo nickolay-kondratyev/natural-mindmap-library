@@ -4,9 +4,11 @@ import { EditSession, type EditStatus, type EditSubmitResult } from './edit/edit
 import { DEFAULT_EDIT_HANDLER } from './edit/inMemoryHost';
 import { resolveExtensions, type MindmapExtensions } from './extensions';
 import { CanvasInteractions } from './interaction/canvasInteractions';
+import type { NodeClickEvent } from './interaction/nodeClickEvent';
 import type { NodeRepositionEvent } from './interaction/repositionEvent';
 import type { MindmapData, NodeId } from './model/node';
 import { drawScene, type Viewport } from './render/canvasRenderer';
+import type { Scene } from './render/scene';
 import { RepaintScheduler, windowFrameScheduler, type FrameScheduler } from './render/repaintScheduler';
 import type { NodeBox } from './shape/nodeShape';
 import { CssFontFaces } from './text/cssFontFaces';
@@ -33,6 +35,11 @@ export interface MountOptions {
   readonly onViewChange?: (view: MindmapView) => void;
   /** Node drags (spec I2), once per drop; the position stays applied across later `setData` calls. */
   readonly onNodeReposition?: (event: NodeRepositionEvent) => void;
+  /**
+   * A click on a node (press and release without a drag), with the modifier keys, e.g. to jump to what the node
+   * stands for. Not fired for drags, pans or hover buttons. Fired for every click, so a double-click fires twice.
+   */
+  readonly onNodeClick?: (event: NodeClickEvent) => void;
   /**
    * The user changed a setting from inside the map (e.g. "Don't ask again" in the reparent dialog). Gets the full
    * settings; store them (e.g. `SettingsPersistence.save`) and pass them back as `config`, since a later
@@ -61,6 +68,13 @@ export interface MindmapHandle {
   getNodeScreenBox(nodeId: NodeId): NodeBox | null;
   getView(): MindmapView;
   setView(view: MindmapView): void;
+  /** Rings one node (or none with `null`), e.g. the one the host's editor cursor is in; an unknown id shows no ring. */
+  setHighlightedNode(nodeId: NodeId | null): void;
+  /**
+   * Pans (keeping the zoom) so the node sits at the canvas center, on the next paint; reported via `onViewChange`
+   * like other library view changes. Does nothing for an id that is not on the map.
+   */
+  centerOnNode(nodeId: NodeId): void;
   zoomIn(): void;
   zoomOut(): void;
   resetView(): void;
@@ -82,6 +96,8 @@ class CanvasMount implements MindmapHandle {
   private config: MindmapConfig;
   private extensions: MindmapExtensions;
   private viewport: Viewport;
+  /** Applied on the next paint, where the painted scene knows where the node is. */
+  private centerOnNodeId: NodeId | null = null;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -118,6 +134,7 @@ class CanvasMount implements MindmapHandle {
       cssFontFamily: (font) => this.cssFonts.familyFor(font),
       requestRepaint: () => this.scheduler.request(),
       onNodeReposition: (event) => options.onNodeReposition?.(event),
+      onNodeClick: (event) => options.onNodeClick?.(event),
       // Same path as a host `setConfig`, so an in-map change can never skip what applying settings involves.
       changeConfig: (config) => {
         this.setConfig(config);
@@ -184,6 +201,15 @@ class CanvasMount implements MindmapHandle {
     this.scheduler.request();
   }
 
+  setHighlightedNode(nodeId: NodeId | null): void {
+    this.interactions.setHighlightedNode(nodeId);
+  }
+
+  centerOnNode(nodeId: NodeId): void {
+    this.centerOnNodeId = nodeId;
+    this.scheduler.request();
+  }
+
   zoomIn(): void {
     this.view.zoomIn();
   }
@@ -217,10 +243,19 @@ class CanvasMount implements MindmapHandle {
     // Feeds the fit target before drawing, so the initial fit (which reports a view change and thereby
     // requests one more, identical frame) is already applied to this paint.
     this.view.setContentBounds(contentBounds(scene.positions, scene.sizes));
+    // After the initial fit, so centering keeps the fitted zoom.
+    this.applyCenterOnNode(scene);
     const fonts = this.fonts.fonts();
     drawScene(this.ctx, scene, this.config, this.extensions, this.viewport, this.view.view, fonts, {
       nodeFontFamily: this.cssFonts.familyFor(fonts.node),
     });
     this.interactions.paintOverlay(this.ctx, scene, this.viewport);
+  }
+
+  private applyCenterOnNode(scene: Scene): void {
+    if (this.centerOnNodeId === null) return;
+    const position = scene.positions.get(this.centerOnNodeId);
+    this.centerOnNodeId = null;
+    if (position !== undefined) this.view.centerOn(position);
   }
 }

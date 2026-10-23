@@ -8,6 +8,8 @@ const ZOOM_IN_FACTOR = 2;
 const WHEEL_UP_DELTA_Y = -300;
 const PRECISION_DIGITS = 9;
 const HUGE_FACTOR = 1000;
+const PANNED_ZOOM = 1.5;
+const SCENE_POINT = { x: 320, y: -140 };
 /** Twice as wide as the viewport, so fitting it must zoom out. */
 const WIDE_CONTENT: ContentBounds = { minX: -WIDTH, minY: -100, maxX: WIDTH, maxY: 100 };
 
@@ -20,7 +22,7 @@ describe('ViewController', () => {
     controller = new ViewController((view) => changes.push(view));
     controller.setViewportSize(WIDTH, HEIGHT);
     // GIVEN a view that is already panned and zoomed
-    controller.setView({ offset: { x: 40, y: -25 }, zoom: 1.5 });
+    controller.setView({ offset: { x: 40, y: -25 }, zoom: PANNED_ZOOM });
   });
 
   it('WHEN zooming at the cursor THEN the scene point under the cursor stays put', () => {
@@ -53,7 +55,7 @@ describe('ViewController', () => {
 
   it('WHEN the wheel scrolls up THEN it zooms in', () => {
     controller.zoomByWheel(CURSOR, WHEEL_UP_DELTA_Y);
-    expect(controller.view.zoom).toBeGreaterThan(1.5);
+    expect(controller.view.zoom).toBeGreaterThan(PANNED_ZOOM);
   });
 
   it('WHEN panning THEN the offset moves by the delta', () => {
@@ -63,12 +65,12 @@ describe('ViewController', () => {
 
   it('WHEN zooming in via the API THEN the zoom grows by one step', () => {
     controller.zoomIn();
-    expect(controller.view.zoom).toBeCloseTo(1.5 * ZOOM_STEP_FACTOR);
+    expect(controller.view.zoom).toBeCloseTo(PANNED_ZOOM * ZOOM_STEP_FACTOR);
   });
 
   it('WHEN zooming out via the API THEN the zoom shrinks by one step', () => {
     controller.zoomOut();
-    expect(controller.view.zoom).toBeCloseTo(1.5 / ZOOM_STEP_FACTOR);
+    expect(controller.view.zoom).toBeCloseTo(PANNED_ZOOM / ZOOM_STEP_FACTOR);
   });
 
   it('WHEN zooming via the API THEN the viewport center stays put', () => {
@@ -109,6 +111,22 @@ describe('ViewController', () => {
   it('WHEN the host sets an out-of-range zoom THEN it is clamped', () => {
     controller.setView({ offset: { x: 0, y: 0 }, zoom: MAX_ZOOM * 2 });
     expect(controller.view.zoom).toBe(MAX_ZOOM);
+  });
+
+  it('WHEN centering on a scene point THEN that point maps to the viewport center', () => {
+    controller.centerOn(SCENE_POINT);
+    const screen = controller.sceneToScreen(SCENE_POINT);
+    expect([screen.x, screen.y].map((v) => v.toFixed(PRECISION_DIGITS))).toEqual([WIDTH / 2, HEIGHT / 2].map((v) => v.toFixed(PRECISION_DIGITS)));
+  });
+
+  it('WHEN centering on a scene point THEN the zoom is kept', () => {
+    controller.centerOn(SCENE_POINT);
+    expect(controller.view.zoom).toBe(PANNED_ZOOM);
+  });
+
+  it('WHEN centering on a scene point THEN the change is reported', () => {
+    controller.centerOn(SCENE_POINT);
+    expect(changes).toEqual([controller.view]);
   });
 
   it('WHEN mapping the scene origin with the default view THEN it is the viewport center', () => {

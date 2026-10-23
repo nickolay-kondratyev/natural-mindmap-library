@@ -12,6 +12,8 @@ export interface InteractionOverlay {
   /** Hover buttons of the hovered node. */
   readonly handles: readonly NodeHandle[];
   readonly hoveredHandle: NodeHandle | null;
+  /** Node the host highlights (`setHighlightedNode`), e.g. where its editor cursor is. */
+  readonly highlightedNodeId: NodeId | null;
   /** Node a dragged node would be dropped onto (spec I3). */
   readonly dropTargetId: NodeId | null;
   /** Node of a pending edit, shown dimmed with a busy ring (spec I5.2). */
@@ -44,8 +46,9 @@ export function drawInteractionOverlay(
 ): void {
   ctx.save();
   applySceneTransform(ctx, viewport, view);
-  const highlight = config.theme.color.nodeText;
-  if (overlay.dropTargetId !== null) drawRing(ctx, scene, extensions, overlay.dropTargetId, highlight, []);
+  // Before the drop ring, which wins when both mark the same node during a drag.
+  if (overlay.highlightedNodeId !== null) drawRing(ctx, scene, extensions, overlay.highlightedNodeId, config.theme.color.highlight, []);
+  if (overlay.dropTargetId !== null) drawRing(ctx, scene, extensions, overlay.dropTargetId, config.theme.color.nodeText, []);
   if (overlay.pendingNodeId !== null) drawPending(ctx, scene, config, extensions, overlay.pendingNodeId, overlay.timeMs);
   for (const handle of overlay.handles) drawHandle(ctx, scene, config, handle, sameHandle(handle, overlay.hoveredHandle));
   ctx.restore();

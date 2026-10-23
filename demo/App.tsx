@@ -1,9 +1,10 @@
 import { useCallback, useRef, useState } from 'react';
-import { SettingsPersistence, type LabelFontStatus } from 'natural-mindmap';
+import { SettingsPersistence, type LabelFontStatus, type NodeClickEvent } from 'natural-mindmap';
 import { Mindmap, type MindmapApi } from 'natural-mindmap/react';
 import { FontStatusBadge } from './FontStatusBadge';
 import { HostSimulationControls } from './host/HostSimulationControls';
 import { useDemoHost } from './host/demoHost';
+import { describeNodeClick } from './host/nodeClickReadout';
 import { MapControls } from './MapControls';
 import { LocalStorageSettings } from './settings/localStorageSettings';
 import { SettingsPanel } from './settings/SettingsPanel';
@@ -18,6 +19,7 @@ export function App() {
   const host = useDemoHost();
   const { config, updateConfig } = usePersistedConfig(SETTINGS_PERSISTENCE);
   const [fontStatus, setFontStatus] = useState<LabelFontStatus | null>(null);
+  const [lastNodeClick, setLastNodeClick] = useState<NodeClickEvent | null>(null);
   const apiRef = useRef<MindmapApi | null>(null);
   const attachApi = useCallback((api: MindmapApi | null) => {
     apiRef.current = api;
@@ -38,6 +40,10 @@ export function App() {
           onEditRequest={host.onEditRequest}
           onEditStatusChange={host.onEditStatusChange}
           onConfigChange={(next) => updateConfig(() => next)}
+          onNodeClick={(event) => {
+            setLastNodeClick(event);
+            apiRef.current?.setHighlightedNode(event.nodeId);
+          }}
         />
         <FontStatusBadge status={fontStatus} />
       </main>
@@ -46,7 +52,11 @@ export function App() {
           <h1>Natural Mindmap</h1>
           <p>Demo runner</p>
         </header>
-        <MapControls api={() => apiRef.current} onResetMap={host.resetMap} />
+        <MapControls
+          api={() => apiRef.current}
+          onResetMap={host.resetMap}
+          lastNodeClick={lastNodeClick === null ? null : describeNodeClick(lastNodeClick, host.data)}
+        />
         <HostSimulationControls settings={host.simulation} onChange={host.setSimulation} editStatus={host.editStatus} />
         <SettingsPanel config={config} onChange={updateConfig} />
       </aside>
