@@ -29,6 +29,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
+    "bench": "vitest run --config bench/vitest.bench.config.ts",
     "e2e": "playwright test"
   },
   "peerDependencies": {
