@@ -1,6 +1,7 @@
 # Next steps before the Obsidian integration
 
-Status: proposal (2026-10-23). Nothing here is decided yet; see "Decisions needed" at the end.
+Status: proposal (2026-10-23). Decided so far: desktop first; the first launch is the heading map of one note,
+with move. Open questions are under "Decisions needed" at the end.
 
 ## TL;DR
 
@@ -12,8 +13,8 @@ The v1 library draws a hand-sized map well. Three things block real Obsidian use
 3. **Missing host hooks.** No "node clicked" event (open the note / jump to the heading), no right-click
    menu hook, no per-node rules (a file cannot have children), and no way to restore saved positions.
 
-Recommended order: fix speed -> host hooks -> collapse -> plugin with a **read-only heading map** of the
-active note -> heading edits -> folder/vault map.
+Order: fix speed -> host hooks -> **first launch: heading map of the active note, with move** -> collapse ->
+other heading edits -> folder/vault map. Collapse only blocks the folder map; for one note it is a nice-to-have.
 
 ## Measured: where the time goes
 
@@ -110,7 +111,7 @@ exists; that time is now. Proposal to keep the library simple:
   `fontFetcher` seam already allows it: the plugin bundles Kalam (48 KB) and returns the bytes.
 - **Several maps at once.** Obsidian can show the map in several tabs. Check that two mounts share no
   state (module-level variables such as `dialogCount` in `reparentDialog.ts`), and add one E2E test that mounts two maps.
-- **Touch.** Obsidian mobile has no wheel, so pinch-to-zoom is missing. Only needed if mobile is a target.
+- **Touch.** Out of scope for now (decided: desktop first). Obsidian mobile has no wheel, so it would need pinch-to-zoom.
 - **Dialogs and notices.** The library's own DOM dialog/notice work in Obsidian, but will not look native. Fine
   for now. Later we could let the host supply them (Obsidian `Modal` / `Notice`).
 - **Settings screen.** Open decision `nid_kkm4447dku0vlz0ry1zwr2v8k_e`; option (b) (library exports the
@@ -139,23 +140,45 @@ the nearest heading above it with a lower level, so skipped levels (H1 -> H3) ju
 before the first heading is ignored. Source: `metadataCache.getFileCache(file).headings` (level, text,
 position), refreshed on the cache's `changed` event, debounced.
 
-**Ship it read-only first.** Click jumps to the heading, the map follows the active note, and the heading under
-the cursor is highlighted. This is the 80/20: it has real value and carries no risk of breaking the user's notes.
+**First launch (decided): navigate + move.** Click jumps to the heading, the map follows the active note, the
+heading under the cursor is highlighted, and dragging a node onto another heading moves that section in the
+Markdown.
 
-**Then edits, one at a time, each mapped onto the existing request -> confirm protocol:**
+**Move, in the note.** Goes through the existing request -> confirm protocol (the library already sends `move`
+and shows it as pending until the plugin confirms):
+- **Section** = the heading line down to the next heading of the same or a higher level (or the end of the note).
+  It carries its body and sub-headings.
+- **Where it lands:** at the end of the new parent's section, as its last child.
+- **Levels shift** by `(new parent level + 1) - moved heading level`, for every heading in the section. Dropping
+  onto the root (the file) makes it a top-level heading, at the note's top level (the smallest level used in
+  the note, not always H1).
+- **Refuse, with a plain reason**, when a heading would go past H6 ("Too deep: Markdown headings stop at level 6").
+  This needs no library change, since a rejected request shows its reason already.
+- **Find headings through Obsidian's heading list, not a regex**, so `#` lines inside code blocks are never
+  treated as headings.
+- **The note may have changed since the map was drawn** (the heading list can lag behind typing). Before
+  applying, check that the heading line at the cached position still has the expected text; if not, refuse
+  ("The note changed, try again").
+- **One undoable change:** one editor transaction when the note is open (one Ctrl-Z undoes the whole move),
+  otherwise `vault.process`. Heading text does not change, so `[[note#heading]]` links keep working.
+- Dropping onto the current parent changes nothing; the plugin confirms with unchanged data.
+- **Not included: reordering siblings** (moving a heading up or down under the same parent). The library's
+  `move` has no position yet. Users will likely want this soon after move ships (see decision 9).
+
+**Other edits come after the first launch**, one at a time:
 
 | Map edit | In the note |
 |---|---|
 | rename | rewrite the heading line. A plain text rewrite leaves `[[note#old heading]]` links broken; check whether Obsidian's own heading rename can be reused |
 | add child | insert `#` x (level+1) heading at the end of the parent's section |
-| move | cut the section (heading + body + sub-headings), paste under the new parent, shift all its levels |
 | delete | remove the section. Destructive with no trash, so do it through an editor transaction (Ctrl-Z works) or keep it off |
+
+Until each one ships, the plugin turns it off with the per-node rules (0.2), so the "+" and rename are not offered.
 
 **Things to settle for heading mode:**
 - **Order matters.** In a note, sibling order is document order. Today first-level nodes alternate
   right/left/right in data order (`tree.ts`), which makes the document read zigzag. A "clockwise" option
-  (first half right, top to bottom; second half left, bottom to top) reads in document order. A drag to
-  reorder siblings is a new edit type (`move` with an index); leave it out at first.
+  (first half right, top to bottom; second half left, bottom to top) reads in document order.
 - **Live typing.** Every heading change re-runs auto layout, so nodes can jump while the user types. A debounce
   helps. Animating nodes to their new spots (phase 2) keeps the user oriented.
 
@@ -176,11 +199,13 @@ the cursor is highlighted. This is the 80/20: it has real value and carries no r
 
 ## Decisions needed (with my recommendation)
 
-1. **Read-only heading map first, edits after?** Recommend yes.
+1. ~~Read-only heading map first?~~ **Decided:** the first launch is the heading map with move.
 2. **Click behavior.** Recommend: click = open/jump, double-click = rename, right-click = Obsidian menu.
-3. **Mobile / touch in scope for the first release?** Recommend desktop first; pinch-zoom as a follow-up.
+3. ~~Mobile / touch in the first release?~~ **Decided:** desktop first. Pinch-zoom comes later.
 4. **Saved positions relative to the parent (not absolute)?** Recommend yes.
 5. **Light theme preset in phase 0?** Recommend yes (many Obsidian users run light mode).
 6. **How the plugin gets the library.** Recommend a git dependency on tags for now, npm later.
 7. **Settings screen** (`nid_kkm4447dku0vlz0ry1zwr2v8k_e`): recommend (b).
 8. **First-level side order for headings:** recommend adding the "clockwise" option and using it in heading mode.
+9. **Reorder siblings in the first launch?** Recommend no: ship move (change parent) first, then add reorder
+   as the next step (an optional position on `move`, plus dropping between two siblings).
