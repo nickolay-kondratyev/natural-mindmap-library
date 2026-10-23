@@ -86,8 +86,9 @@ function sharpestCornerDeg(edge: readonly Point[]): number {
 }
 
 /**
- * Every node covers at least this radius around its center (smallest ellipse half-height), so edge points this
- * close to either end are painted over; the settle hook folds the inner edge there, invisibly.
+ * Every default-sized node covers at least this radius around its center (smallest ellipse half-height), so edge
+ * points this close to either end are painted over. The settle hook folds the inner edge there (the offset of a
+ * curve tighter than the half-width), about 3 px from the child center, so invisibly.
  */
 const HIDDEN_UNDER_NODE_PX = (DEFAULT_CONFIG.node.rootSize.height * DEFAULT_CONFIG.node.minScale) / 2;
 
