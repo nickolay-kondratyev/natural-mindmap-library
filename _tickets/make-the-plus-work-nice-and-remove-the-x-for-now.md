@@ -1,14 +1,14 @@
 ---
+closed_iso: 2026-10-23T20:24:44Z
 profile: standard
 id: nid_gbj85a2pad7yofsjnf7ng26ff_e
 title: "Make the plus work nice and remove the X for now."
-status: in_progress
-pwd: /home/nickolaykondratyev/git_repos/nickolay-kondratyev_natural-mindmap-library/.worktree/t-gbj85a2p
+status: closed
 deps: []
 parent: nid_rk795rjqzzksdjrhm03dy6s7l_e
 links: [nid_rk795rjqzzksdjrhm03dy6s7l_e]
 created_iso: 2026-10-23T17:42:09Z
-status_updated_iso: 2026-10-23T20:18:18Z
+status_updated_iso: 2026-10-23T20:24:44Z
 type: task
 priority: 2
 assignee: nickolaykondratyev
