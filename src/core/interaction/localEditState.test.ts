@@ -93,6 +93,10 @@ describe('LocalEditState', () => {
   describe('GIVEN a draft child of a', () => {
     beforeEach(() => state.showDraft({ type: 'add', parentId: 'a', text: '' }));
 
+    it('WHEN asked for display data twice THEN it is the same object, so the scene cache holds', () => {
+      expect(state.displayData()).toBe(state.displayData());
+    });
+
     it('WHEN asked for display data THEN the draft shows as a child of a', () => {
       expect(state.displayData().find((node) => node.id === DRAFT_NODE_ID)?.parentId).toBe('a');
     });
@@ -162,6 +166,10 @@ describe('LocalEditState', () => {
       let result: EditSubmitResult;
       beforeEach(() => {
         result = session.submit(MOVE_A_UNDER_B);
+      });
+
+      it('WHEN asked for overrides twice while pending THEN it is the same map, so the scene cache holds', () => {
+        expect(state.effectiveOverrides()).toBe(state.effectiveOverrides());
       });
 
       it('WHEN asked for overrides while pending THEN only b keeps one, so a previews at its new layout spot', () => {
