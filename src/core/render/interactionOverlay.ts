@@ -28,7 +28,7 @@ const BUSY_DASH_PX = 8;
 /** Dash travel speed of the busy ring, in px per millisecond. */
 const BUSY_DASH_SPEED = 0.03;
 const HANDLE_OUTLINE_WIDTH_PX = 2;
-/** Half the length of the "+" / "x" strokes, as a fraction of the handle radius. */
+/** Half the length of the "+" strokes, as a fraction of the handle radius. */
 const HANDLE_GLYPH_FRACTION = 0.5;
 const HANDLE_GLYPH_WIDTH_PX = 2.5;
 const TRANSPARENT = 'rgba(0, 0, 0, 0)';
@@ -103,17 +103,10 @@ function drawHandle(ctx: CanvasRenderingContext2D, scene: Scene, config: Mindmap
 
   const arm = HANDLE_RADIUS * HANDLE_GLYPH_FRACTION;
   ctx.beginPath();
-  if (handle.kind === 'add-child') {
-    ctx.moveTo(x - arm, y);
-    ctx.lineTo(x + arm, y);
-    ctx.moveTo(x, y - arm);
-    ctx.lineTo(x, y + arm);
-  } else {
-    ctx.moveTo(x - arm, y - arm);
-    ctx.lineTo(x + arm, y + arm);
-    ctx.moveTo(x + arm, y - arm);
-    ctx.lineTo(x - arm, y + arm);
-  }
+  ctx.moveTo(x - arm, y);
+  ctx.lineTo(x + arm, y);
+  ctx.moveTo(x, y - arm);
+  ctx.lineTo(x, y + arm);
   ctx.lineWidth = HANDLE_GLYPH_WIDTH_PX;
   ctx.lineCap = 'round';
   ctx.stroke();
