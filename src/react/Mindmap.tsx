@@ -27,7 +27,7 @@ export interface MindmapProps {
   /** Host side of the edit protocol (spec I5); defaults to the in-memory host that confirms immediately (I6). */
   readonly onEditRequest?: EditHandler;
   readonly onEditStatusChange?: (status: EditStatus) => void;
-  /** User-driven pan/zoom; not fired for `ref.setView`. */
+  /** Pan/zoom by the user or the library (incl. the initial fit-to-content); not fired for `ref.setView`. */
   readonly onViewChange?: (view: MindmapView) => void;
   readonly onNodeReposition?: (event: NodeRepositionEvent) => void;
 }

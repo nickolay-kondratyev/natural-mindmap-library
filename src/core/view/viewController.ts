@@ -35,7 +35,9 @@ export class ViewController {
     return this.current;
   }
 
+  /** The host's own write (e.g. a restored view): never echoed, and it takes precedence over the initial fit. */
   setView(view: MindmapView): void {
+    this.initialFitDone = true;
     this.current = { offset: view.offset, zoom: clampZoom(view.zoom) };
   }
 
@@ -115,6 +117,8 @@ export class ViewController {
   private update(view: MindmapView): void {
     // E.g. wheeling further at a zoom limit: nothing moved, so nothing to report or repaint.
     if (sameView(view, this.current)) return;
+    // Any view change before the first sized paint (host reset, early pan) is the user's choice; do not fit over it.
+    this.initialFitDone = true;
     this.current = view;
     this.onChange(view);
   }

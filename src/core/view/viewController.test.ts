@@ -146,6 +146,14 @@ describe('ViewController initial fit', () => {
     expect(controller.view).toEqual(fitView(WIDE_CONTENT, { width: WIDTH, height: HEIGHT }));
   });
 
+  it('WHEN the host set a view before the first paint THEN the first content bounds do not fit over it', () => {
+    const restored: MindmapView = { offset: { x: 5, y: 5 }, zoom: 2 };
+    controller.setViewportSize(WIDTH, HEIGHT);
+    controller.setView(restored);
+    controller.setContentBounds(WIDE_CONTENT);
+    expect(controller.view).toEqual(restored);
+  });
+
   it('WHEN the user has panned and new content bounds arrive THEN the view is left alone', () => {
     controller.setViewportSize(WIDTH, HEIGHT);
     controller.setContentBounds(WIDE_CONTENT);

@@ -99,7 +99,8 @@ scheduler; every setter just requests a repaint (spec L8). The painted data is `
   (`add` uses `PENDING_NODE_ID`; `delete` keeps the subtree visible); `rejected` keeps the request for retry.
   No library-side timeout. `applyEdit` is the pure apply used by `InMemoryHost` and the preview.
 - **View** (I1): `screen = viewportCenter + offset + zoom * scene` (CSS px). `ViewController` reports
-  user-driven changes (pan, cursor-anchored zoom, API zoom/reset) via `onViewChange`; host `setView` is not echoed.
+  changes it makes (pan, cursor-anchored zoom, API zoom/reset, the initial fit) via `onViewChange`; host `setView` is not echoed
+  and, before the first paint, takes precedence over the initial fit.
   Fit-to-content (`view/fitView.ts`): every paint feeds `contentBounds(positions, sizes)` to the controller; the
   first paint on a sized viewport fits the whole map with `FIT_MARGIN_PX` (never above zoom 1) and `reset()`
   returns to that fit. Later data/resize changes leave the view alone.

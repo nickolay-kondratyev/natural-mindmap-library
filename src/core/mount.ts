@@ -27,7 +27,7 @@ export interface MountOptions {
   readonly onEditRequest?: EditHandler;
   /** Pending / rejected / idle, so the host can show a busy state or the rejection reason. */
   readonly onEditStatusChange?: (status: EditStatus) => void;
-  /** User-driven view changes (pan, zoom, API zoom/reset); not fired for `setView`. */
+  /** View changes made by the library (pan, zoom, API zoom/reset, the initial fit-to-content); not fired for `setView`. */
   readonly onViewChange?: (view: MindmapView) => void;
   /** Node drags (spec I2); emitted by the pointer interactions. */
   readonly onNodeReposition?: (event: NodeRepositionEvent) => void;
