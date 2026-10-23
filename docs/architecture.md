@@ -100,6 +100,9 @@ scheduler; every setter just requests a repaint (spec L8). The painted data is `
   No library-side timeout. `applyEdit` is the pure apply used by `InMemoryHost` and the preview.
 - **View** (I1): `screen = viewportCenter + offset + zoom * scene` (CSS px). `ViewController` reports
   user-driven changes (pan, cursor-anchored zoom, API zoom/reset) via `onViewChange`; host `setView` is not echoed.
+  Fit-to-content (`view/fitView.ts`): every paint feeds `contentBounds(positions, sizes)` to the controller; the
+  first paint on a sized viewport fits the whole map with `FIT_MARGIN_PX` (never above zoom 1) and `reset()`
+  returns to that fit. Later data/resize changes leave the view alone.
 
 ## Placeholders owned by follow-up tickets
 
@@ -113,5 +116,9 @@ scheduler; every setter just requests a repaint (spec L8). The painted data is `
   itself is not unit-tested; scene assembly and scheduling are.
 - E2E (Playwright, Chromium): `e2e/` runs against the built demo served by `vite preview`. Import `test`
   from `e2e/fixtures.ts`: it aborts non-localhost requests and serves `*.ttf` from the vendored font.
+- Acceptance screenshot (spec Q3): `e2e/reference-view.spec.ts` shoots `demo/reference.html`, a canvas-only
+  page (zero config, reference data, no React) at a fixed 1400x900 / DPR 1 viewport; the baseline lives in
+  `e2e/reference-view.spec.ts-snapshots/`. It is the only look assertion in the repo; re-baseline with
+  `npx playwright test e2e/reference-view.spec.ts --update-snapshots` after an intended visual change.
 - Vendored Kalam (`assets/fonts/kalam/`, SIL OFL) is the same file as the default Fontsource URL; unit tests
   read it via `test-support/vendoredKalam.ts`, so no test hits the network.
