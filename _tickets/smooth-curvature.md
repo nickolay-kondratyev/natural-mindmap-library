@@ -1,16 +1,16 @@
 ---
+closed_iso: 2026-10-23T16:53:40Z
 id: nid_ff5xjpw3jbxn30sdv3d5i8haa_e
 title: "smooth curvature"
-status: in_progress
+status: closed
 deps: []
 links: []
 created_iso: 2026-10-23T16:44:02Z
-status_updated_iso: 2026-10-23T16:46:47Z
+status_updated_iso: 2026-10-23T16:53:40Z
 type: task
 priority: 3
 assignee: nickolaykondratyev
 tags: []
-pwd: /home/nickolaykondratyev/git_repos/nickolay-kondratyev_natural-mindmap-library-mirror-1/.worktree/t-ff5xjpw3
 ---
 
 Rough angles in the curvature.

@@ -82,7 +82,8 @@ highlight / pending veil on top.
   unrelated node boxes and from overlapping limbs (simple separation, not physics; curve interior only, since
   clearing an obstacle near an end would bulge the whole limb). `Branch.width` is the
   start/end thickness (`rootWidth * widthPerLevel^(level-1)`, end = `taper` of start); `taperedOutline(branch,
-  asymmetry)` turns it into the polygon the renderer fills, with a hash-of-child-id-seeded one-sided bulge (R7).
+  asymmetry)` turns it into the polygon the renderer fills, with a hash-of-child-id-seeded one-sided bulge (R7);
+  its edges are sampled evenly plus wherever the limb bends (cost follows total turning), so tight bends show no corners.
 - **Node shape** (R2): `draw` paints fill + outline; `contains` is for hit testing; `rimPoint` for geometry.
 - **Color strategy** (R10/R11): returns fill + outline per node id; root colors come from `theme.color.root`.
 - **Node sizes** (R4): always read from `Scene.sizes` / `resolveNodeSizes`; never compute sizes elsewhere.
