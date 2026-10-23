@@ -1,7 +1,7 @@
 import type { BranchConfig } from '../config/config';
 import type { NodePositions } from '../layout/layoutTypes';
 import { GOLDEN_RATIO } from '../math/goldenRatio';
-import type { NodeId, Point } from '../model/node';
+import type { NodeId, NodeSize, Point } from '../model/node';
 import type { MindmapTree } from '../model/tree';
 import type { NodeSizeMap } from '../size/nodeSizeResolver';
 import type { Branch, BranchWidth } from './branchPath';
@@ -16,9 +16,10 @@ export interface BranchGeometryInput {
 }
 
 /**
- * Fraction of the parent->child horizontal distance at which siblings' curves share their first control point.
- * Smaller = the "Y" forks closer to the parent (spec §8 Forks); 1/phi^2 ~ 0.38 keeps a visible common trunk
- * while the curves still settle smoothly into each child.
+ * Fraction of the horizontal distance from the parent's edge to the children at which siblings' curves share
+ * their first control point. Measured from the edge, not the center, so the shared trunk is visible outside the
+ * node for every node size (spec §8 Forks: a soft "Y" close to the parent); 1/phi^2 ~ 0.38 keeps that trunk
+ * short while the curves still settle smoothly into each child.
  */
 const FORK_DISTANCE_FRACTION = 1 / GOLDEN_RATIO ** 2;
 /** Fraction of the horizontal distance over which a curve flattens out before reaching the child (spec R6). */
@@ -41,7 +42,8 @@ export function buildBranches(input: BranchGeometryInput): readonly Branch[] {
     const children = tree.childrenOf(parent.id);
     if (children.length === 0) continue;
     const parentCenter = positionOf(input.positions, parent.id);
-    const fork = forkDistance(parentCenter, children, input.positions);
+    const parentHalfWidth = sizeOf(input.sizes, parent.id).width / 2;
+    const fork = forkDistance(parentCenter, parentHalfWidth, children, input.positions);
     for (const child of children) {
       const childCenter = positionOf(input.positions, child.id);
       routable.push({
@@ -66,12 +68,18 @@ export function widthAtDepth(childDepth: number, config: BranchConfig): BranchWi
   return { start, end: start * config.taper };
 }
 
-/** All siblings share one fork distance (the mean horizontal reach) so their first control points coincide. */
-function forkDistance(parentCenter: Point, siblings: readonly { id: NodeId }[], positions: NodePositions): number {
+/** All siblings share one fork distance (from the mean horizontal reach) so their first control points coincide. */
+function forkDistance(
+  parentCenter: Point,
+  parentHalfWidth: number,
+  siblings: readonly { id: NodeId }[],
+  positions: NodePositions,
+): number {
   const meanReach =
     siblings.reduce((sum, sibling) => sum + Math.abs(positionOf(positions, sibling.id).x - parentCenter.x), 0) /
     siblings.length;
-  return Math.max(MIN_HORIZONTAL_HANDLE_PX, meanReach * FORK_DISTANCE_FRACTION);
+  const reachBeyondEdge = Math.max(0, meanReach - parentHalfWidth);
+  return parentHalfWidth + Math.max(MIN_HORIZONTAL_HANDLE_PX, reachBeyondEdge * FORK_DISTANCE_FRACTION);
 }
 
 function controlPoints(parentCenter: Point, childCenter: Point, fork: number): CubicControlPoints {
@@ -83,6 +91,12 @@ function controlPoints(parentCenter: Point, childCenter: Point, fork: number): C
     control2: { x: childCenter.x - direction * settle, y: childCenter.y },
     end: childCenter,
   };
+}
+
+function sizeOf(sizes: NodeSizeMap, id: NodeId): NodeSize {
+  const size = sizes.get(id);
+  if (size === undefined) throw new Error(`No node size for node [${id}]; sizes come from resolveNodeSizes`);
+  return size;
 }
 
 /** Fails plainly when a (host-supplied) layout stage left a node unpositioned instead of producing NaN geometry. */

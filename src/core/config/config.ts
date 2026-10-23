@@ -103,7 +103,7 @@ export const DEFAULT_CONFIG: MindmapConfig = {
     minScale: 0.45,
   },
   branch: {
-    rootWidth: 40,
+    rootWidth: 60,
     widthPerLevel: 1 / GOLDEN_RATIO,
     taper: 0.15,
     asymmetry: 0.2,
