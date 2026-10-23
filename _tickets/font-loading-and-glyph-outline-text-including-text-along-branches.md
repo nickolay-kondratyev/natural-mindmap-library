@@ -1,17 +1,17 @@
 ---
+closed_iso: 2026-10-23T00:34:16Z
 id: nid_q5cs3lr79q1xa2ebtbny5exc9_e
 title: "Font loading and glyph-outline text, including text along branches"
-status: in_progress
+status: closed
 deps: [nid_spbntjy1m5mjtuzwhraxzd8h1_e]
 links: []
 created_iso: 2026-10-22T23:56:09Z
-status_updated_iso: 2026-10-23T00:16:45Z
+status_updated_iso: 2026-10-23T00:34:16Z
 type: task
 parent: nid_hc65067veoxpca8wtir8bnj2e_e
 priority: 2
 assignee: CC_WITH-nickolaykondratyev
 tags: [mindmap-v1]
-pwd: /home/nickolaykondratyev/git_repos/nickolay-kondratyev_natural-mindmap-library/.worktree/t-q5cs3lr7
 ---
 ## Goal
 Render all text from real font glyph outlines, including the signature feature: each non-root label bent glyph-by-glyph along its incoming branch (R12–R18), with async font loading that never crashes rendering (L6).
