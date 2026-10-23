@@ -21,11 +21,14 @@ interface Box {
 /** Points per curve used for overlap checks. Enough to catch a node-sized box; cheap enough for every paint. */
 const ROUTING_SAMPLES = 24;
 /**
- * Only the interior of a curve is checked for branch-vs-branch overlap: near the endpoints siblings and
- * parent/child chains legitimately touch, and moving control points barely moves those regions anyway.
+ * Only the interior of a curve is routed, both around nodes and away from other limbs. Near the endpoints moving
+ * the inner control points barely moves the curve (Bernstein weight 3t(1-t) -> 0), so clearing an obstacle there
+ * takes a huge bulge that bounces the whole limb; if the endpoint itself is within clearance it cannot clear at
+ * all and every pass adds another nudge. Clearance next to the nodes is the collision layout's job (R23), and
+ * siblings and parent/child chains legitimately touch there anyway.
  */
-const SEPARATION_INTERIOR_FROM = 0.15;
-const SEPARATION_INTERIOR_TO = 0.85;
+const ROUTING_INTERIOR_FROM = 0.15;
+const ROUTING_INTERIOR_TO = 0.85;
 /** Extra air between a limb's edge and an unrelated node or another limb, in px. */
 const CLEARANCE_PX = 6;
 /**
@@ -84,11 +87,16 @@ interface Escape {
   readonly depth: number;
 }
 
-/** The worst (deepest) intrusion of the branch's edge into any obstacle, with the shorter vertical way out. */
+/**
+ * The worst (deepest) intrusion of the branch's interior edge into any obstacle, with the shorter vertical way out.
+ * WHY-NOT resample the interior like `interiorOverlap`: the whole-curve grid with the ends skipped keeps routed
+ * shapes (and the reference view) stable for limbs whose ends were never in the way.
+ */
 function deepestPenetration(branch: RoutableBranch, obstacles: readonly Box[]): Escape | null {
   let worst: Escape | null = null;
   for (let i = 0; i <= ROUTING_SAMPLES; i += 1) {
     const t = i / ROUTING_SAMPLES;
+    if (t < ROUTING_INTERIOR_FROM || t > ROUTING_INTERIOR_TO) continue;
     const point = pointOnCubic(branch.controls, t);
     const margin = halfWidthAt(branch.width, t) + CLEARANCE_PX;
     for (const obstacle of obstacles) {
@@ -139,10 +147,10 @@ interface Overlap {
 function interiorOverlap(a: RoutableBranch, b: RoutableBranch): Overlap | null {
   let worst: Overlap | null = null;
   for (let i = 0; i <= ROUTING_SAMPLES; i += 1) {
-    const ta = SEPARATION_INTERIOR_FROM + (i / ROUTING_SAMPLES) * (SEPARATION_INTERIOR_TO - SEPARATION_INTERIOR_FROM);
+    const ta = ROUTING_INTERIOR_FROM + (i / ROUTING_SAMPLES) * (ROUTING_INTERIOR_TO - ROUTING_INTERIOR_FROM);
     const pa = pointOnCubic(a.controls, ta);
     for (let j = 0; j <= ROUTING_SAMPLES; j += 1) {
-      const tb = SEPARATION_INTERIOR_FROM + (j / ROUTING_SAMPLES) * (SEPARATION_INTERIOR_TO - SEPARATION_INTERIOR_FROM);
+      const tb = ROUTING_INTERIOR_FROM + (j / ROUTING_SAMPLES) * (ROUTING_INTERIOR_TO - ROUTING_INTERIOR_FROM);
       const pb = pointOnCubic(b.controls, tb);
       const required = halfWidthAt(a.width, ta) + halfWidthAt(b.width, tb) + CLEARANCE_PX;
       const deficit = required - Math.hypot(pa.x - pb.x, pa.y - pb.y);
