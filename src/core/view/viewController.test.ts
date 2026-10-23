@@ -1,3 +1,4 @@
+import { fitView, type ContentBounds } from './fitView';
 import { DEFAULT_VIEW, MAX_ZOOM, MIN_ZOOM, ViewController, ZOOM_STEP_FACTOR, type MindmapView } from './viewController';
 
 const WIDTH = 800;
@@ -7,6 +8,8 @@ const ZOOM_IN_FACTOR = 2;
 const WHEEL_UP_DELTA_Y = -300;
 const PRECISION_DIGITS = 9;
 const HUGE_FACTOR = 1000;
+/** Twice as wide as the viewport, so fitting it must zoom out. */
+const WIDE_CONTENT: ContentBounds = { minX: -WIDTH, minY: -100, maxX: WIDTH, maxY: 100 };
 
 describe('ViewController', () => {
   let changes: MindmapView[];
@@ -75,9 +78,15 @@ describe('ViewController', () => {
     expect(controller.sceneToScreen(before).x).toBeCloseTo(center.x);
   });
 
-  it('WHEN resetting THEN the default view is restored', () => {
+  it('WHEN resetting without content bounds THEN the default view is restored', () => {
     controller.reset();
     expect(controller.view).toEqual(DEFAULT_VIEW);
+  });
+
+  it('WHEN resetting with content bounds THEN the view is the fit of those bounds', () => {
+    controller.setContentBounds(WIDE_CONTENT);
+    controller.reset();
+    expect(controller.view).toEqual(fitView(WIDE_CONTENT, { width: WIDTH, height: HEIGHT }));
   });
 
   it('WHEN the user pans THEN the change is reported', () => {
@@ -105,5 +114,52 @@ describe('ViewController', () => {
   it('WHEN mapping the scene origin with the default view THEN it is the viewport center', () => {
     controller.setView(DEFAULT_VIEW);
     expect(controller.sceneToScreen({ x: 0, y: 0 })).toEqual({ x: WIDTH / 2, y: HEIGHT / 2 });
+  });
+});
+
+describe('ViewController initial fit', () => {
+  let changes: MindmapView[];
+  let controller: ViewController;
+
+  beforeEach(() => {
+    changes = [];
+    // GIVEN a fresh controller that has not been panned or zoomed
+    controller = new ViewController((view) => changes.push(view));
+  });
+
+  it('WHEN the first content bounds arrive on a sized viewport THEN the view fits them', () => {
+    controller.setViewportSize(WIDTH, HEIGHT);
+    controller.setContentBounds(WIDE_CONTENT);
+    expect(controller.view).toEqual(fitView(WIDE_CONTENT, { width: WIDTH, height: HEIGHT }));
+  });
+
+  it('WHEN the initial fit happens THEN it is reported as a view change', () => {
+    controller.setViewportSize(WIDTH, HEIGHT);
+    controller.setContentBounds(WIDE_CONTENT);
+    expect(changes).toHaveLength(1);
+  });
+
+  it('WHEN content bounds arrive while the viewport is still 0x0 THEN the fit waits for a sized viewport', () => {
+    controller.setContentBounds(WIDE_CONTENT);
+    controller.setViewportSize(WIDTH, HEIGHT);
+    controller.setContentBounds(WIDE_CONTENT);
+    expect(controller.view).toEqual(fitView(WIDE_CONTENT, { width: WIDTH, height: HEIGHT }));
+  });
+
+  it('WHEN the host set a view before the first paint THEN the first content bounds do not fit over it', () => {
+    const restored: MindmapView = { offset: { x: 5, y: 5 }, zoom: 2 };
+    controller.setViewportSize(WIDTH, HEIGHT);
+    controller.setView(restored);
+    controller.setContentBounds(WIDE_CONTENT);
+    expect(controller.view).toEqual(restored);
+  });
+
+  it('WHEN the user has panned and new content bounds arrive THEN the view is left alone', () => {
+    controller.setViewportSize(WIDTH, HEIGHT);
+    controller.setContentBounds(WIDE_CONTENT);
+    controller.panBy({ x: 10, y: 0 });
+    const panned = controller.view;
+    controller.setContentBounds({ ...WIDE_CONTENT, maxX: WIDE_CONTENT.maxX * 2 });
+    expect(controller.view).toEqual(panned);
   });
 });

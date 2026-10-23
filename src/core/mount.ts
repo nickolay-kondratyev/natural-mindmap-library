@@ -10,6 +10,7 @@ import { RepaintScheduler, windowFrameScheduler, type FrameScheduler } from './r
 import { buildScene } from './render/scene';
 import { fetchFontBytes, type FontFetcher } from './text/fontStore';
 import { LabelFontLoader, type LabelFontStatus } from './text/labelFontLoader';
+import { contentBounds } from './view/fitView';
 import { ViewController, type MindmapView } from './view/viewController';
 
 export interface MountOptions {
@@ -26,7 +27,7 @@ export interface MountOptions {
   readonly onEditRequest?: EditHandler;
   /** Pending / rejected / idle, so the host can show a busy state or the rejection reason. */
   readonly onEditStatusChange?: (status: EditStatus) => void;
-  /** User-driven view changes (pan, zoom, API zoom/reset); not fired for `setView`. */
+  /** View changes made by the library (pan, zoom, API zoom/reset, the initial fit-to-content); not fired for `setView`. */
   readonly onViewChange?: (view: MindmapView) => void;
   /** Node drags (spec I2); emitted by the pointer interactions. */
   readonly onNodeReposition?: (event: NodeRepositionEvent) => void;
@@ -171,6 +172,9 @@ class CanvasMount implements MindmapHandle {
 
   private paint(): void {
     const scene = buildScene(this.edits.displayData, this.config, this.extensions);
+    // Feeds the fit target before drawing, so the initial fit (which reports a view change and thereby
+    // requests one more, identical frame) is already applied to this paint.
+    this.view.setContentBounds(contentBounds(scene.positions, scene.sizes));
     drawScene(this.ctx, scene, this.config, this.extensions, this.viewport, this.view.view, this.fonts.fonts());
   }
 }
