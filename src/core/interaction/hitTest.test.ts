@@ -1,0 +1,100 @@
+import type { NodePositions } from '../layout/layoutTypes';
+import type { MindmapData, NodeId, NodeSize, Point } from '../model/node';
+import { buildTree } from '../model/tree';
+import { ellipseShape } from '../shape/nodeShape';
+import { HANDLE_GAP, HANDLE_RADIUS, nodeAt, nodeHandles, pointerTargetAt, type HitScene } from './hitTest';
+
+const NODE_SIZE: NodeSize = { width: 100, height: 40 };
+const HALF_WIDTH = NODE_SIZE.width / 2;
+const HALF_HEIGHT = NODE_SIZE.height / 2;
+const HANDLE_REACH_X = HALF_WIDTH + HANDLE_GAP + HANDLE_RADIUS;
+const HANDLE_REACH_Y = HALF_HEIGHT + HANDLE_GAP + HANDLE_RADIUS;
+
+// GIVEN a root, a right node `r`, a left node `l`, and `top` drawn last and overlapping `r`
+const data: MindmapData = [
+  { id: 'root', parentId: null, text: 'ROOT' },
+  { id: 'r', parentId: 'root', text: 'R', side: 'right' },
+  { id: 'l', parentId: 'root', text: 'L', side: 'left' },
+  { id: 'top', parentId: 'root', text: 'T', side: 'right' },
+];
+const positions: NodePositions = new Map<NodeId, Point>([
+  ['root', { x: 0, y: 0 }],
+  ['r', { x: 300, y: 0 }],
+  ['l', { x: -300, y: 0 }],
+  ['top', { x: 340, y: 0 }],
+]);
+const scene: HitScene = {
+  tree: buildTree(data),
+  positions,
+  sizes: new Map(data.map((node) => [node.id, NODE_SIZE])),
+};
+
+describe('nodeAt', () => {
+  it('WHEN the point is inside a node THEN that node is hit', () => {
+    expect(nodeAt(scene, { x: -300, y: 10 }, ellipseShape)).toBe('l');
+  });
+
+  it('WHEN the point is in empty canvas THEN nothing is hit', () => {
+    expect(nodeAt(scene, { x: 0, y: 200 }, ellipseShape)).toBeNull();
+  });
+
+  it('WHEN the point is in the bounding box corner outside the ellipse THEN nothing is hit', () => {
+    expect(nodeAt(scene, { x: -300 + HALF_WIDTH - 1, y: HALF_HEIGHT - 1 }, ellipseShape)).toBeNull();
+  });
+
+  it('WHEN two nodes overlap at the point THEN the one painted last wins', () => {
+    expect(nodeAt(scene, { x: 320, y: 0 }, ellipseShape)).toBe('top');
+  });
+
+  it('WHEN the top node is excluded THEN the node beneath it is hit', () => {
+    expect(nodeAt(scene, { x: 320, y: 0 }, ellipseShape, new Set(['top']))).toBe('r');
+  });
+});
+
+describe('nodeHandles', () => {
+  it('WHEN asked for a right-side node THEN its "+" sits on its right (outer) side', () => {
+    const add = nodeHandles(scene, 'r').find((handle) => handle.kind === 'add-child');
+    expect(add?.center).toEqual({ x: 300 + HANDLE_REACH_X, y: 0 });
+  });
+
+  it('WHEN asked for a left-side node THEN its "+" sits on its left (outer) side', () => {
+    const add = nodeHandles(scene, 'l').find((handle) => handle.kind === 'add-child');
+    expect(add?.center).toEqual({ x: -300 - HANDLE_REACH_X, y: 0 });
+  });
+
+  it('WHEN asked for the root THEN it offers a "+" for each side', () => {
+    const sides = nodeHandles(scene, 'root').flatMap((handle) => (handle.kind === 'add-child' ? [handle.side] : []));
+    expect(sides).toEqual(['left', 'right']);
+  });
+
+  it('WHEN asked for the root THEN it offers no delete button', () => {
+    expect(nodeHandles(scene, 'root').some((handle) => handle.kind === 'delete')).toBe(false);
+  });
+
+  it('WHEN asked for a non-root node THEN its delete button sits above it', () => {
+    const remove = nodeHandles(scene, 'l').find((handle) => handle.kind === 'delete');
+    expect(remove?.center).toEqual({ x: -300, y: -HANDLE_REACH_Y });
+  });
+});
+
+describe('pointerTargetAt', () => {
+  const plusOfLeft: Point = { x: -300 - HANDLE_REACH_X, y: 0 };
+
+  it('GIVEN the node is hovered WHEN the point is on its "+" THEN the "+" button is hit', () => {
+    const target = pointerTargetAt(scene, plusOfLeft, ellipseShape, 'l');
+    expect(target.kind === 'handle' && target.handle.kind).toBe('add-child');
+  });
+
+  it('GIVEN no node is hovered WHEN the point is where a "+" would be THEN it is empty canvas', () => {
+    expect(pointerTargetAt(scene, plusOfLeft, ellipseShape, null)).toEqual({ kind: 'empty' });
+  });
+
+  it('GIVEN a node is hovered WHEN the point is on another node THEN that node is hit', () => {
+    expect(pointerTargetAt(scene, { x: 0, y: 0 }, ellipseShape, 'l')).toEqual({ kind: 'node', nodeId: 'root' });
+  });
+
+  it('GIVEN the node is hovered WHEN the point is just outside its "+" THEN the "+" is not hit', () => {
+    const justOutside = { x: plusOfLeft.x - HANDLE_RADIUS - 1, y: 0 };
+    expect(pointerTargetAt(scene, justOutside, ellipseShape, 'l')).toEqual({ kind: 'empty' });
+  });
+});
