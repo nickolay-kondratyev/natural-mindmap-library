@@ -106,9 +106,10 @@ export const Mindmap = forwardRef<MindmapApi, MindmapProps>(function Mindmap(
   useLayoutEffect(() => {
     callbacksRef.current = callbacks;
   });
-  useImperativeHandle(ref, () => apiDelegatingTo(handleRef), []);
-
-  useEffect(() => {
+  // A layout effect declared before `useImperativeHandle`: React runs both in declaration order in the same commit,
+  // so the ref is attached only once the core is mounted. WHY-NOT a passive `useEffect`: it runs after the ref is
+  // attached (after paint), leaving a window where the ref exists but every call throws "not mounted".
+  useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (canvas === null) return;
     const handle = mountMindmap(canvas, {
@@ -136,6 +137,7 @@ export const Mindmap = forwardRef<MindmapApi, MindmapProps>(function Mindmap(
     };
     // Mount once; prop updates are forwarded by the effects below so the canvas is not torn down per change.
   }, []);
+  useImperativeHandle(ref, () => apiDelegatingTo(handleRef), []);
 
   useEffect(() => {
     handleRef.current?.setData(data);
