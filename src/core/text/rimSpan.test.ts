@@ -23,3 +23,12 @@ describe('rimToRimSpan', () => {
     expect(empty.end - empty.start).toBe(0);
   });
 });
+
+describe('rimToRimSpan with a child that swallows its parent', () => {
+  it('GIVEN a child large enough to contain the parent center WHEN measured THEN the span is empty, never negative', () => {
+    const parent = { center: { x: 0, y: 0 }, size: { width: 40, height: 20 } };
+    const child = { center: { x: 50, y: 0 }, size: { width: 200, height: 80 } };
+    const span = rimToRimSpan(new StraightPath(parent.center, child.center), parent, child, ellipseShape);
+    expect(span.end - span.start).toBe(0);
+  });
+});

@@ -2,6 +2,8 @@ import { StraightPath } from '../geometry/branchPath';
 import type { BranchTextFitConfig } from '../config/config';
 import { GlyphRun } from './glyphRun';
 import { layoutBranchLabel, layoutNodeLabel } from './labelLayout';
+import { rimToRimSpan } from './rimSpan';
+import { ellipseShape } from '../shape/nodeShape';
 
 const LIMITS: BranchTextFitConfig = { paddingPx: 4, minPaddingPx: 0, minLetterSpacingEm: 0, minFontScale: 1 };
 const STYLE = { sizePx: 10, letterSpacingEm: 0 };
@@ -67,5 +69,23 @@ describe('layoutNodeLabel', () => {
 
   it('WHEN the label is wider than allowed THEN the font shrinks to fit', () => {
     expect(layoutNodeLabel(center, 20, RUN, STYLE).sizePx).toBe(5);
+  });
+});
+
+describe('GIVEN a child node larger than its parent (data size override or depthScale > 1)', () => {
+  // Parent 40px wide at x=0, child 160px wide at x=200: rims at x=20 and x=120.
+  const parent = { center: { x: 0, y: 0 }, size: { width: 40, height: 20 } };
+  const child = { center: { x: 200, y: 0 }, size: { width: 160, height: 60 } };
+  const path = new StraightPath(parent.center, child.center);
+  const span = rimToRimSpan(path, parent, child, ellipseShape);
+  const layout = layoutBranchLabel(path, span, RUN, STYLE, LIMITS);
+
+  it('WHEN laid out THEN the label is centered between the parent rim and the larger child rim', () => {
+    // Span [20, 120], 40px label -> glyph centers 55..85.
+    expect(layout.glyphs.map((g) => Math.round(g.center.x))).toEqual([55, 65, 75, 85]);
+  });
+
+  it('WHEN laid out THEN all glyphs are kept at full size', () => {
+    expect([layout.glyphs.length, layout.sizePx]).toEqual([4, 10]);
   });
 });
