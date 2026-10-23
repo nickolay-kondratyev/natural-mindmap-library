@@ -20,15 +20,42 @@ export interface BranchConfig {
   readonly taper: number;
 }
 
+/** Font plus glyph-outline styling for one kind of label (spec R17, R18); node and branch text are independent. */
 export interface FontConfig {
-  /** TTF URL the host supplies; parsed with opentype.js by the text module. */
+  /**
+   * TTF URL the host supplies; parsed with opentype.js by the text module. To supply bytes instead, pass a
+   * `fontFetcher` at mount (or use a `blob:`/`data:` URL).
+   */
   readonly url: string;
   readonly sizePx: number;
+  /** Extra space between glyphs, as a fraction of the font size (negative tightens). */
+  readonly letterSpacingEm: number;
+  /** Horizontal glyph scale; 1 = as designed. */
+  readonly stretch: number;
+  /** Horizontal shear of glyphs (tangent of the lean angle); 0 = upright, positive leans right. */
+  readonly slant: number;
+  /** Synthetic bold (outline thickened by a stroke); the root label is always bold (spec R3). */
+  readonly bold: boolean;
+  /** Outline drawn around glyphs in `theme.color.textOutline`; 0 = no outline (spec R16). */
+  readonly outlineWidthPx: number;
+}
+
+/** Fitting cascade for branch labels that do not fit between the two node rims (spec R15). */
+export interface BranchTextFitConfig {
+  /** Free space kept at each end of the rim-to-rim span. */
+  readonly paddingPx: number;
+  /** Step 2 of the cascade shrinks padding down to this. */
+  readonly minPaddingPx: number;
+  /** Step 1 of the cascade tightens letter spacing down to this. */
+  readonly minLetterSpacingEm: number;
+  /** Step 3 of the cascade shrinks the font down to this fraction of `sizePx`; glyphs that still overflow are dropped. */
+  readonly minFontScale: number;
 }
 
 export interface TextConfig {
   readonly node: FontConfig;
   readonly branch: FontConfig;
+  readonly branchFit: BranchTextFitConfig;
 }
 
 /**
@@ -53,7 +80,18 @@ export type DeepPartial<T> = T extends readonly unknown[]
 
 export type PartialMindmapConfig = DeepPartial<MindmapConfig>;
 
-const KALAM_TTF_URL = 'https://cdn.jsdelivr.net/fontsource/fonts/kalam@latest/latin-400-normal.ttf';
+// Pinned (not @latest) so the default look cannot drift; `assets/fonts/kalam/` vendors the same file for tests.
+const KALAM_TTF_URL = 'https://cdn.jsdelivr.net/fontsource/fonts/kalam@5.3.0/latin-400-normal.ttf';
+
+const DEFAULT_FONT: FontConfig = {
+  url: KALAM_TTF_URL,
+  sizePx: 18,
+  letterSpacingEm: 0,
+  stretch: 1,
+  slant: 0,
+  bold: false,
+  outlineWidthPx: 0,
+};
 
 export const DEFAULT_CONFIG: MindmapConfig = {
   theme: DEFAULT_THEME,
@@ -68,8 +106,10 @@ export const DEFAULT_CONFIG: MindmapConfig = {
     taper: 0.15,
   },
   text: {
-    node: { url: KALAM_TTF_URL, sizePx: 18 },
-    branch: { url: KALAM_TTF_URL, sizePx: 18 },
+    node: DEFAULT_FONT,
+    // A thin dark outline keeps white branch text legible on light limb colors (spec §8 "Text").
+    branch: { ...DEFAULT_FONT, outlineWidthPx: 1.5 },
+    branchFit: { paddingPx: 8, minPaddingPx: 2, minLetterSpacingEm: -0.05, minFontScale: 0.6 },
   },
   layout: DEFAULT_LAYOUT_CONFIG,
 };

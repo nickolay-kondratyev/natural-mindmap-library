@@ -7,6 +7,7 @@ export {
   DEFAULT_CONFIG,
   resolveConfig,
   type BranchConfig,
+  type BranchTextFitConfig,
   type DeepPartial,
   type FontConfig,
   type MindmapConfig,
@@ -32,4 +33,6 @@ export { parentDerivedColorStrategy, type ColorStrategy, type NodeColor, type No
 export { buildScene, type Scene } from './render/scene';
 export { drawScene, type Viewport } from './render/canvasRenderer';
 export { RepaintScheduler, windowFrameScheduler, type FrameScheduler } from './render/repaintScheduler';
+export { fetchFontBytes, FontFetchError, type FontFetcher, type FontStatus } from './text/fontStore';
+export type { LabelFontStatus } from './text/labelFontLoader';
 export { mountMindmap, type MindmapHandle, type MountOptions } from './mount';
