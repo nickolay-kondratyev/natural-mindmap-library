@@ -1,11 +1,19 @@
 import { resolveConfig, type MindmapConfig, type PartialMindmapConfig } from './config/config';
+import type { EditHandler, EditRequest } from './edit/editRequest';
+import { EditSession, type EditStatus, type EditSubmitResult } from './edit/editSession';
+import { DEFAULT_EDIT_HANDLER } from './edit/inMemoryHost';
 import { resolveExtensions, type MindmapExtensions } from './extensions';
+import type { NodeRepositionEvent } from './interaction/repositionEvent';
 import type { MindmapData } from './model/node';
 import { drawScene, type Viewport } from './render/canvasRenderer';
 import { RepaintScheduler, windowFrameScheduler, type FrameScheduler } from './render/repaintScheduler';
 import { buildScene } from './render/scene';
+<<<<<<< HEAD
 import { fetchFontBytes, type FontFetcher } from './text/fontStore';
 import { LabelFontLoader, type LabelFontStatus } from './text/labelFontLoader';
+=======
+import { ViewController, type MindmapView } from './view/viewController';
+>>>>>>> origin/main
 
 export interface MountOptions {
   readonly data: MindmapData;
@@ -13,10 +21,21 @@ export interface MountOptions {
   readonly extensions?: Partial<MindmapExtensions>;
   /** Injectable for tests; defaults to `requestAnimationFrame`. */
   readonly frames?: FrameScheduler;
+<<<<<<< HEAD
   /** Font I/O seam (spec L5 Fonts); defaults to `fetch`. Return bytes you already hold to skip the network. */
   readonly fontFetcher?: FontFetcher;
   /** Font loading status (spec L6): called once at mount and on every change, e.g. to show a loading state. */
   readonly onFontStatusChange?: (status: LabelFontStatus) => void;
+=======
+  /** Host side of the edit protocol (spec I5); defaults to the in-memory host that confirms immediately (I6). */
+  readonly onEditRequest?: EditHandler;
+  /** Pending / rejected / idle, so the host can show a busy state or the rejection reason. */
+  readonly onEditStatusChange?: (status: EditStatus) => void;
+  /** User-driven view changes (pan, zoom, API zoom/reset); not fired for `setView`. */
+  readonly onViewChange?: (view: MindmapView) => void;
+  /** Node drags (spec I2); emitted by the pointer interactions. */
+  readonly onNodeReposition?: (event: NodeRepositionEvent) => void;
+>>>>>>> origin/main
 }
 
 /** Handle returned by `mountMindmap`; every setter coalesces into one repaint per frame (spec L8). */
@@ -26,7 +45,20 @@ export interface MindmapHandle {
   setExtensions(extensions: Partial<MindmapExtensions> | undefined): void;
   /** Size in CSS pixels; the backing store is scaled by `devicePixelRatio`. */
   resize(width: number, height: number, devicePixelRatio: number): void;
+<<<<<<< HEAD
   fontStatus(): LabelFontStatus;
+=======
+  /** Sends a structural edit through the host (spec I5); refused up front when invalid or another is pending. */
+  requestEdit(request: EditRequest): EditSubmitResult;
+  getEditStatus(): EditStatus;
+  /** Dismisses a shown rejection reason. */
+  clearEditRejection(): void;
+  getView(): MindmapView;
+  setView(view: MindmapView): void;
+  zoomIn(): void;
+  zoomOut(): void;
+  resetView(): void;
+>>>>>>> origin/main
   destroy(): void;
 }
 
@@ -37,8 +69,13 @@ export function mountMindmap(canvas: HTMLCanvasElement, options: MountOptions): 
 class CanvasMount implements MindmapHandle {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly scheduler: RepaintScheduler;
+<<<<<<< HEAD
   private readonly fonts: LabelFontLoader;
   private data: MindmapData;
+=======
+  private readonly edits: EditSession;
+  private readonly view: ViewController;
+>>>>>>> origin/main
   private config: MindmapConfig;
   private extensions: MindmapExtensions;
   private viewport: Viewport;
@@ -50,7 +87,14 @@ class CanvasMount implements MindmapHandle {
     const ctx = canvas.getContext('2d');
     if (ctx === null) throw new Error('Canvas 2D context is not available');
     this.ctx = ctx;
-    this.data = options.data;
+    this.edits = new EditSession(options.data, options.onEditRequest ?? DEFAULT_EDIT_HANDLER, (status) => {
+      this.scheduler.request();
+      options.onEditStatusChange?.(status);
+    });
+    this.view = new ViewController((view) => {
+      this.scheduler.request();
+      options.onViewChange?.(view);
+    });
     this.config = resolveConfig(options.config);
     this.extensions = resolveExtensions(options.extensions);
     this.scheduler = new RepaintScheduler(() => this.paint(), options.frames ?? windowFrameScheduler);
@@ -66,7 +110,7 @@ class CanvasMount implements MindmapHandle {
   }
 
   setData(data: MindmapData): void {
-    this.data = data;
+    this.edits.setHostData(data);
     this.scheduler.request();
   }
 
@@ -86,24 +130,68 @@ class CanvasMount implements MindmapHandle {
     this.applyViewport();
   }
 
+<<<<<<< HEAD
   fontStatus(): LabelFontStatus {
     return this.fonts.status();
   }
 
   destroy(): void {
     this.fonts.dispose();
+=======
+  requestEdit(request: EditRequest): EditSubmitResult {
+    return this.edits.submit(request);
+  }
+
+  getEditStatus(): EditStatus {
+    return this.edits.status;
+  }
+
+  clearEditRejection(): void {
+    this.edits.clearRejection();
+  }
+
+  getView(): MindmapView {
+    return this.view.view;
+  }
+
+  setView(view: MindmapView): void {
+    this.view.setView(view);
+    this.scheduler.request();
+  }
+
+  zoomIn(): void {
+    this.view.zoomIn();
+  }
+
+  zoomOut(): void {
+    this.view.zoomOut();
+  }
+
+  resetView(): void {
+    this.view.reset();
+  }
+
+  destroy(): void {
+    this.edits.dispose();
+>>>>>>> origin/main
     this.scheduler.cancel();
   }
 
   /** Sizes the backing store to the viewport (which clears the canvas) and schedules a repaint. */
   private applyViewport(): void {
+    this.view.setViewportSize(this.viewport.width, this.viewport.height);
     this.canvas.width = Math.round(this.viewport.width * this.viewport.devicePixelRatio);
     this.canvas.height = Math.round(this.viewport.height * this.viewport.devicePixelRatio);
     this.scheduler.request();
   }
 
   private paint(): void {
+<<<<<<< HEAD
     const scene = buildScene(this.data, this.config, this.extensions);
     drawScene(this.ctx, scene, this.config, this.extensions, this.viewport, this.fonts.fonts());
+=======
+    const scene = buildScene(this.edits.displayData, this.config, this.extensions);
+    drawScene(this.ctx, scene, this.config, this.extensions, this.viewport, this.view.view);
+>>>>>>> origin/main
   }
 }

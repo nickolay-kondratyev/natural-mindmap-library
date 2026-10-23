@@ -18,6 +18,8 @@ export interface BranchConfig {
   readonly widthPerLevel: number;
   /** End width as a fraction of the start width (0 = needle point). */
   readonly taper: number;
+  /** How much one edge bulges relative to the other, as a fraction of the half width (spec R7; 0 = symmetric). */
+  readonly asymmetry: number;
 }
 
 /** Font plus glyph-outline styling for one kind of label (spec R17, R18); node and branch text are independent. */
@@ -104,6 +106,7 @@ export const DEFAULT_CONFIG: MindmapConfig = {
     rootWidth: 40,
     widthPerLevel: 1 / GOLDEN_RATIO,
     taper: 0.15,
+    asymmetry: 0.2,
   },
   text: {
     node: DEFAULT_FONT,

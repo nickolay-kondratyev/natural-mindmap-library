@@ -23,10 +23,17 @@ export { DEFAULT_LAYOUT_CONFIG, type BilateralLayoutConfig, type LayoutConfig } 
 export type { LayoutContext, LayoutStage, NodePositions } from './layout/layoutTypes';
 export { goldenRatioBowCurve, type BowCurve } from './layout/bowCurve';
 export { defaultLayoutStages, runLayoutPipeline } from './layout/pipeline';
-export { placeholderBilateralStage } from './layout/placeholderBilateralStage';
+export { tidyTreeStage } from './layout/tidyTreeStage';
+export { rootBowStage } from './layout/rootBowStage';
+export { handDrawnJitterStage } from './layout/handDrawnJitterStage';
+export { collisionStage, resolveCollisions, type CollisionInput } from './layout/collisionStage';
+export { layoutMindmap, type LayoutMindmapOptions } from './layout/layoutMindmap';
 
 export { resolveNodeSizes, defaultSizeAtDepth, type NodeSizeMap } from './size/nodeSizeResolver';
-export { StraightPath, type Branch, type BranchPath, type PathSample } from './geometry/branchPath';
+export { StraightPath, type Branch, type BranchPath, type BranchWidth, type PathSample } from './geometry/branchPath';
+export { CubicBezierPath, type CubicControlPoints } from './geometry/cubicBezierPath';
+export { buildBranches, widthAtDepth, type BranchGeometryInput } from './geometry/branchGeometry';
+export { taperedOutline, type BranchOutline } from './geometry/taperedOutline';
 export { ellipseShape, type NodeBox, type NodeFillStyle, type NodeShape } from './shape/nodeShape';
 export { parentDerivedColorStrategy, type ColorStrategy, type NodeColor, type NodeColorMap } from './color/colorStrategy';
 
@@ -36,3 +43,18 @@ export { RepaintScheduler, windowFrameScheduler, type FrameScheduler } from './r
 export { fetchFontBytes, FontFetchError, type FontFetcher, type FontStatus } from './text/fontStore';
 export type { LabelFontStatus } from './text/labelFontLoader';
 export { mountMindmap, type MindmapHandle, type MountOptions } from './mount';
+
+export type { AddEditRequest, DeleteEditRequest, EditHandler, EditRequest, MoveEditRequest, RenameEditRequest } from './edit/editRequest';
+export { applyEdit } from './edit/applyEdit';
+export { EDIT_PROBLEM, findEditProblem } from './edit/editValidation';
+export {
+  DEFAULT_REJECTION_REASON,
+  EDIT_BLOCKED_REASON,
+  PENDING_NODE_ID,
+  type EditPreview,
+  type EditStatus,
+  type EditSubmitResult,
+} from './edit/editSession';
+export { CONFIRM_IMMEDIATELY, DEFAULT_EDIT_HANDLER, InMemoryHost, type HostSimulation } from './edit/inMemoryHost';
+export type { NodeRepositionEvent } from './interaction/repositionEvent';
+export { DEFAULT_VIEW, MAX_ZOOM, MIN_ZOOM, type MindmapView } from './view/viewController';
