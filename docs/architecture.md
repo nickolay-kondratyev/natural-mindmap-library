@@ -26,8 +26,10 @@ host data (flat MindmapNode[])      PartialMindmapConfig        Partial<MindmapE
 ```
 
 `mountMindmap(canvas, options)` owns the state (edit session, config, extensions, viewport, view) and the
-scheduler; every setter just requests a repaint (spec L8). The painted data is `EditSession.displayData`
-(pending preview, else host-confirmed data) and `drawScene` applies the `ViewController` pan/zoom.
+scheduler; every setter just requests a repaint (spec L8). `CanvasInteractions` picks the scene to paint (pending
+preview, else draft child, else host-confirmed data, with the user's position overrides; or the live drag preview),
+`drawScene` applies the `ViewController` pan/zoom, then `drawInteractionOverlay` paints hover buttons / drop
+highlight / pending veil on top.
 
 ## Modules (`src/core/`)
 
@@ -36,16 +38,16 @@ scheduler; every setter just requests a repaint (spec L8). The painted data is `
 | `model/` | Host data types, tree index, reference data | `MindmapNode`, `buildTree` -> `MindmapTree` (depth, side, ancestry), `REFERENCE_DATA` |
 | `config/` | Plain-data config + defaults + deep merge | `MindmapConfig`, `DEFAULT_CONFIG`, `resolveConfig`, `ThemeConfig` |
 | `size/` | Single source of node sizes (R4) | `resolveNodeSizes(tree, config.node)` -> `NodeSizeMap` |
-| `layout/` | Layout `type` union + stage pipeline + bow curve + default stages | `LayoutConfig`, `LayoutStage`, `LayoutContext`, `runLayoutPipeline`, `defaultLayoutStages`, `layoutMindmap`, `BowCurve`, `tidyTreeStage`, `rootBowStage`, `handDrawnJitterStage`, `collisionStage` / `resolveCollisions` |
+| `layout/` | Layout `type` union + stage pipeline + bow curve + default stages + user position overrides | `LayoutConfig`, `LayoutStage`, `LayoutContext`, `runLayoutPipeline`, `defaultLayoutStages`, `layoutMindmap`, `BowCurve`, `tidyTreeStage`, `rootBowStage`, `handDrawnJitterStage`, `collisionStage` / `resolveCollisions`, `applyPositionOverrides`, `moveSubtree` |
 | `geometry/` | Branch path representation + limb geometry | `BranchPath { length, sampleAt(arcLength) -> { point, tangent } }`, `Branch { path, width }`, `CubicBezierPath`, `buildBranches` (curves + fork + routing), `taperedOutline` |
 | `shape/` | Node shape seam (R2) | `NodeShape { draw, contains, rimPoint }`, `ellipseShape` |
 | `color/` | Color strategy seam (R10/R11) | `ColorStrategy.resolve(tree, theme) -> NodeColorMap`, `parentDerivedColorStrategy` |
-| `render/` | Scene assembly, canvas drawing, frame coalescing | `buildScene`, `drawScene`, `drawLabels`, `RepaintScheduler` |
-| `text/` | Font loading + glyph-outline labels (R12-R18, L6) | `LabelFontLoader` / `FontStore` (`FontFetcher` seam), `LoadedFont.shape`, `rimToRimSpan`, `fitBranchText`, `layoutBranchLabel`, `layoutNodeLabel`, `paintLabel` |
+| `render/` | Scene assembly, canvas drawing, frame coalescing | `buildScene`, `drawScene`, `drawLabels`, `drawInteractionOverlay`, `RepaintScheduler` |
+| `text/` | Font loading + glyph-outline labels (R12-R18, L6) | `LabelFontLoader` / `FontStore` (`FontFetcher` seam), `LoadedFont.shape`, `rimToRimSpan`, `fitBranchText`, `layoutBranchLabel`, `layoutNodeLabel`, `paintLabel`, `CssFontFaces` (same bytes as DOM font for inline rename) |
 | `extensions.ts` | Bundle of code-level extension points | `MindmapExtensions`, `DEFAULT_EXTENSIONS` |
 | `edit/` | Request -> confirm protocol (I5), default host (I6) | `EditRequest`, `EditHandler`, `EditSession`, `findEditProblem`, `applyEdit`, `InMemoryHost` |
 | `view/` | Library-local pan/zoom (I1) | `MindmapView`, `ViewController` |
-| `interaction/` | Interaction event types (I2) | `NodeRepositionEvent` |
+| `interaction/` | Canvas pointer interactions (I1-I5) | `CanvasInteractions` (DOM wiring), `PointerGesture` + `DRAG_THRESHOLD_PX`, `hitTest` (`nodeAt`, `nodeHandles`, `pointerTargetAt`), `InlineLabelEditor`, `NoticeBanner`, `NodeRepositionEvent` |
 | `mount.ts` | Imperative entry point | `mountMindmap` -> `MindmapHandle` |
 
 ## Config vs extensions
@@ -68,7 +70,7 @@ scheduler; every setter just requests a repaint (spec L8). The painted data is `
   the node id, so deterministic and stable under edits), `collision` (push-apart, root pinned).
   `layoutMindmap(data, { config, extensions })` is the standalone data-in -> positions-out entry (L7).
 - **Collision** (R23/I2): `resolveCollisions(positions, { tree, sizes, padding, pinnedIds })` is reusable outside
-  the pipeline (drag-time push-apart pins the dragged subtree); the root is always pinned.
+  the pipeline (`applyPositionOverrides` pins user-dragged subtrees); the root is always pinned.
 - **Bow curve** (R21): `BowCurve(normalizedVerticalDistance 0..1) -> normalizedHorizontalOffset 0..1`.
 - **Branch path** (R5/R12): arc-length parametrised so branch rendering (tapered outline) and
   text-along-curve (glyph placement) agree. Branches run center to center (R9); use
@@ -100,12 +102,21 @@ scheduler; every setter just requests a repaint (spec L8). The painted data is `
   No library-side timeout. `applyEdit` is the pure apply used by `InMemoryHost` and the preview.
 - **View** (I1): `screen = viewportCenter + offset + zoom * scene` (CSS px). `ViewController` reports
   user-driven changes (pan, cursor-anchored zoom, API zoom/reset) via `onViewChange`; host `setView` is not echoed.
-
-## Placeholders owned by follow-up tickets
-
-- `mount.ts`: no pointer/DOM wiring yet (pan drag, wheel, node drag/drop, "+" button, inline rename);
-  the interaction ticket drives `ViewController` / `EditSession` from it, emits `onNodeReposition`, and
-  shows `EditSession.preview` as pending (dimmed) plus the rejection reason.
+- **Pointer interactions** (I1-I5): `CanvasInteractions` is the only DOM-event code; the decisions are pure and
+  unit-tested (`PointerGesture`: click vs pan vs node drag past `DRAG_THRESHOLD_PX`; `hitTest`: point -> node /
+  hover button, in scene coordinates against the last painted scene). Dragging empty canvas or the root pans; wheel
+  zooms at the cursor. A node drag moves its subtree over a frozen scene (no live push-apart, else the drop target
+  would be pushed out from under the pointer); dropping onto a node sends `move` (the dragged subtree is never a
+  target, so self/descendant drops cannot happen by drag and `findEditProblem` still guards), dropping elsewhere
+  stores a library-local `PositionOverrides` entry and emits `onNodeReposition`. `buildScene(..., overrides)`
+  applies overrides after the pipeline and re-runs `resolveCollisions` with the overridden subtrees pinned (no
+  overrides = pipeline output untouched); a confirmed `move` drops the moved subtree's overrides.
+  Hover buttons: "+" on the outer side (both sides for the root) opens the inline editor on a local draft child
+  (`DRAFT_NODE_ID`, not sent until Enter); "x" above non-root nodes sends `delete`. Double-click renames. Editors
+  do not open while an edit is pending. DOM overlays (`<input>` editor, `role="alert"` notice with the rejection or
+  refusal reason) are created lazily as siblings right after the canvas, positioned via `offsetLeft/Top`. A
+  rejected edit sent from the editor reopens it with the typed label (I5.4).
+  `MindmapHandle.getNodeScreenBox` / `getData` expose node boxes and confirmed data (host UI, E2E).
 
 ## Testing
 
@@ -113,5 +124,7 @@ scheduler; every setter just requests a repaint (spec L8). The painted data is `
   itself is not unit-tested; scene assembly and scheduling are.
 - E2E (Playwright, Chromium): `e2e/` runs against the built demo served by `vite preview`. Import `test`
   from `e2e/fixtures.ts`: it aborts non-localhost requests and serves `*.ttf` from the vendored font.
+  Canvas content has no DOM, so the demo exposes its `MindmapApi` as `window.mindmap` (`demo/testHooks.ts`;
+  `?rejectEdits` makes its host reject every edit).
 - Vendored Kalam (`assets/fonts/kalam/`, SIL OFL) is the same file as the default Fontsource URL; unit tests
   read it via `test-support/vendoredKalam.ts`, so no test hits the network.
