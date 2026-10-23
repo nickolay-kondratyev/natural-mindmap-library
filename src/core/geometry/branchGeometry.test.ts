@@ -151,6 +151,26 @@ describe('buildBranches', () => {
     });
   });
 
+  describe('GIVEN an unrelated node right beside a parent, grazing its limb only where the limb leaves the parent', () => {
+    // Below the limb's start and within its clearance, but not covering the parent's center.
+    const grazing: PlacedNode = { node: { id: 'graze', parentId: 'root', text: 'G' }, at: { x: 310, y: 14 } };
+    const input = inputFrom(
+      [
+        { node: { id: 'root', parentId: null, text: 'R' }, at: { x: 0, y: 0 } },
+        { node: { id: 'p', parentId: 'root', text: 'P', side: 'right' }, at: { x: 300, y: 0 } },
+        { node: { id: 'c', parentId: 'p', text: 'C' }, at: { x: 600, y: 0 } },
+        grazing,
+      ],
+      CONSTANT_WIDTH,
+    );
+    const limb = branchTo(buildBranches(input), 'c');
+
+    it('WHEN routed THEN the limb bends less than the obstacle is tall (no bounce)', () => {
+      const unroutedMidY = 0;
+      expect(Math.abs(pointAtFraction(limb, 0.5).y - unroutedMidY)).toBeLessThan(UNIFORM_SIZE.height);
+    });
+  });
+
   describe('GIVEN two limbs from different parents running too close to each other', () => {
     const SMALL: NodeSize = { width: 10, height: 10 };
     const placed: PlacedNode[] = [

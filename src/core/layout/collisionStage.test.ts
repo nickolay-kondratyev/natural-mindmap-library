@@ -73,7 +73,7 @@ describe('GIVEN a node overlapping the root', () => {
 });
 
 describe('GIVEN a pinned non-root node overlapped by a free one', () => {
-  const pinnedInput: CollisionInput = { ...input, pinnedIds: new Set(['a']) };
+  const pinnedInput: CollisionInput = { ...input, pinnedGroups: [new Set(['a'])] };
   const overlapping = new Map<NodeId, Point>([
     ['root', { x: 0, y: 0 }],
     ['a', { x: 300, y: 0 }],
@@ -89,8 +89,8 @@ describe('GIVEN a pinned non-root node overlapped by a free one', () => {
   });
 });
 
-describe('GIVEN two pinned nodes overlapping each other', () => {
-  const bothPinned: CollisionInput = { ...input, pinnedIds: new Set(['a', 'b']) };
+describe('GIVEN two nodes of one pinned group overlapping each other', () => {
+  const bothPinned: CollisionInput = { ...input, pinnedGroups: [new Set(['a', 'b'])] };
   const overlapping = new Map<NodeId, Point>([
     ['root', { x: 0, y: 0 }],
     ['a', { x: 300, y: 0 }],
@@ -100,6 +100,37 @@ describe('GIVEN two pinned nodes overlapping each other', () => {
   it('WHEN resolved THEN neither pinned node moves', () => {
     const resolved = resolveCollisions(overlapping, bothPinned);
     expect([resolved.get('a'), resolved.get('b')]).toEqual([overlapping.get('a'), overlapping.get('b')]);
+  });
+});
+
+describe('GIVEN nodes of an earlier and a later pinned group overlapping each other', () => {
+  const twoGroups: CollisionInput = { ...input, pinnedGroups: [new Set(['a']), new Set(['b'])] };
+  const overlapping = new Map<NodeId, Point>([
+    ['root', { x: 0, y: 0 }],
+    ['a', { x: 300, y: 0 }],
+    ['b', { x: 305, y: 5 }],
+  ]);
+
+  it('WHEN resolved THEN the later group does not move', () => {
+    expect(resolveCollisions(overlapping, twoGroups).get('b')).toEqual({ x: 305, y: 5 });
+  });
+
+  it('WHEN resolved THEN the earlier group yields until the overlap is gone', () => {
+    expect(anyPaddedBoxesOverlap(resolveCollisions(overlapping, twoGroups))).toBe(false);
+  });
+});
+
+describe('GIVEN a node of an earlier pinned group overlapped by a free node', () => {
+  const twoGroups: CollisionInput = { ...input, pinnedGroups: [new Set(['a']), new Set(['c'])] };
+  const overlapping = new Map<NodeId, Point>([
+    ['root', { x: 0, y: 0 }],
+    ['a', { x: 300, y: 0 }],
+    ['b', { x: 310, y: 10 }],
+    ['c', { x: 300, y: 400 }],
+  ]);
+
+  it('WHEN resolved THEN the pinned node does not yield to the free one', () => {
+    expect(resolveCollisions(overlapping, twoGroups).get('a')).toEqual({ x: 300, y: 0 });
   });
 });
 

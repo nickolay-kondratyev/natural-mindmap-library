@@ -7,7 +7,7 @@ import { requirePosition, requireSize } from './layoutLookups';
 /**
  * Upper bound on relaxation passes. Pushing one pair apart can create a new overlap with a neighbour, so
  * passes repeat until a pass moves nothing; the bound only guards against unresolvable input (e.g. two
- * pinned nodes overlapping each other), in which case the result is best effort.
+ * nodes of one pinned group overlapping each other), in which case the result is best effort.
  */
 const MAX_COLLISION_PASSES = 100;
 
@@ -25,9 +25,22 @@ export interface CollisionInput {
   readonly sizes: NodeSizeMap;
   /** Minimum clearance between node boxes, in px. */
   readonly padding: number;
-  /** Nodes that never move, in addition to the root (which is always pinned), e.g. a dragged subtree (spec I2). */
-  readonly pinnedIds?: ReadonlySet<NodeId>;
+  /**
+   * Nodes that never yield to free nodes, e.g. user-dragged subtrees (spec I2), as groups from weakest to
+   * strongest: when nodes of two groups overlap, the earlier group yields to the later one (the latest drop wins),
+   * so user-placed nodes repel each other too. Nodes of one group never move against each other. A node listed in
+   * several groups belongs to the last one. The root is stronger than every group.
+   */
+  readonly pinnedGroups?: readonly ReadonlySet<NodeId>[];
 }
+
+/**
+ * How firmly a node holds its place: in an overlap the weaker node takes the whole push, equal free nodes share it.
+ * Free nodes are 0, pinned group `i` is `i + 1`, the root is strongest.
+ */
+type PinRank = number;
+const FREE_RANK: PinRank = 0;
+const ROOT_RANK: PinRank = Number.POSITIVE_INFINITY;
 
 interface Penetration {
   readonly x: number;
@@ -36,22 +49,22 @@ interface Penetration {
 
 /**
  * Spec R23: pushes overlapping node boxes apart until every pair keeps `padding` clearance. Each overlap is
- * resolved along the axis of least penetration (the smallest move that separates the pair). Pinned nodes
- * never move; their partner takes the whole push. Pure: returns a new map, the input is untouched.
+ * resolved along the axis of least penetration (the smallest move that separates the pair). The weaker node of a
+ * pair (see `PinRank`) takes the whole push; two free nodes share it; two nodes of one pinned group stay put.
+ * Pure: returns a new map, the input is untouched.
  *
  * Ceiling: O(n^2) pair scan per pass, fine for hand-sized maps (hundreds of nodes). Upgrade path: bucket boxes
  * in a uniform grid or a d3-quadtree and only test neighbours.
  */
 export function resolveCollisions(positions: NodePositions, input: CollisionInput): NodePositions {
-  const pinned = new Set<NodeId>(input.pinnedIds ?? []);
-  pinned.add(input.tree.root.id);
+  const ranks = pinRanks(input);
   const result = new Map<NodeId, Point>(positions);
   const ids = [...result.keys()];
   for (let pass = 0; pass < MAX_COLLISION_PASSES; pass += 1) {
     let moved = false;
     for (let i = 0; i < ids.length; i += 1) {
       for (let j = i + 1; j < ids.length; j += 1) {
-        moved = separatePair(ids[i] as NodeId, ids[j] as NodeId, result, pinned, input) || moved;
+        moved = separatePair(ids[i] as NodeId, ids[j] as NodeId, result, ranks, input) || moved;
       }
     }
     if (!moved) break;
@@ -67,17 +80,26 @@ export const collisionStage: LayoutStage = {
   },
 };
 
+function pinRanks(input: CollisionInput): ReadonlyMap<NodeId, PinRank> {
+  const ranks = new Map<NodeId, PinRank>();
+  (input.pinnedGroups ?? []).forEach((group, index) => {
+    for (const id of group) ranks.set(id, index + 1);
+  });
+  ranks.set(input.tree.root.id, ROOT_RANK);
+  return ranks;
+}
+
 /** Returns whether anything moved. */
 function separatePair(
   idA: NodeId,
   idB: NodeId,
   positions: Map<NodeId, Point>,
-  pinned: ReadonlySet<NodeId>,
+  ranks: ReadonlyMap<NodeId, PinRank>,
   input: CollisionInput,
 ): boolean {
-  const aPinned = pinned.has(idA);
-  const bPinned = pinned.has(idB);
-  if (aPinned && bPinned) return false;
+  const rankA = ranks.get(idA) ?? FREE_RANK;
+  const rankB = ranks.get(idB) ?? FREE_RANK;
+  if (rankA === rankB && rankA !== FREE_RANK) return false;
   const a = requirePosition(positions, idA);
   const b = requirePosition(positions, idB);
   const penetration = penetrationOf(idA, a, idB, b, input);
@@ -87,7 +109,7 @@ function separatePair(
   const delta = alongX ? b.x - a.x : b.y - a.y;
   const direction = delta === 0 ? TIE_BREAK_DIRECTION : Math.sign(delta);
   const push = (alongX ? penetration.x : penetration.y) * direction;
-  const aShare = aPinned ? 0 : bPinned ? 1 : SHARED_MOVE_FRACTION;
+  const aShare = rankA > rankB ? 0 : rankA < rankB ? 1 : SHARED_MOVE_FRACTION;
   const bShare = 1 - aShare;
   positions.set(idA, offset(a, alongX, -push * aShare));
   positions.set(idB, offset(b, alongX, push * bShare));

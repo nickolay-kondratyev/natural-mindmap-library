@@ -89,6 +89,33 @@ describe('applyPositionOverrides', () => {
   });
 });
 
+describe('GIVEN a node dragged earlier and another node dropped onto it later', () => {
+  // Map order is drop order: `b` was placed first, then `a` was dropped onto it.
+  const overrides: PositionOverrides = new Map([
+    ['b', { x: 300, y: 200 }],
+    ['a', { x: 300, y: 195 }],
+  ]);
+
+  it('WHEN applied THEN the two no longer overlap', () => {
+    expect(boxesOverlap(apply(overrides), 'a', 'b')).toBe(false);
+  });
+
+  it('WHEN applied THEN the later drop stays exactly where it was dropped', () => {
+    expect(apply(overrides).get('a')).toEqual({ x: 300, y: 195 });
+  });
+});
+
+describe('GIVEN a node dragged earlier onto a laid-out node and an unrelated later drop', () => {
+  const overrides: PositionOverrides = new Map([
+    ['b', { x: 300, y: -95 }],
+    ['a1', { x: 700, y: 300 }],
+  ]);
+
+  it('WHEN applied THEN the earlier drop still does not yield to the laid-out node', () => {
+    expect(apply(overrides).get('b')).toEqual({ x: 300, y: -95 });
+  });
+});
+
 describe('GIVEN a child that was dragged earlier', () => {
   const earlier: PositionOverrides = new Map([['a1', { x: 520, y: -40 }]]);
 
@@ -102,6 +129,12 @@ describe('GIVEN a child that was dragged earlier', () => {
     it('THEN the child moves along by the same delta instead of snapping back', () => {
       expect(result.get('a1')).toEqual({ x: 530, y: -20 });
     });
+  });
+
+  it('WHEN the child is dropped again after its sibling subtree THEN it counts as the latest drop', () => {
+    const afterOther = withNodeDropped(earlier, tree, { nodeId: 'b', from: { x: 300, y: 200 }, to: { x: 310, y: 220 } });
+    const result = withNodeDropped(afterOther, tree, { nodeId: 'a1', from: { x: 520, y: -40 }, to: { x: 530, y: -50 } });
+    expect([...result.keys()].at(-1)).toBe('a1');
   });
 
   it('WHEN an unrelated node is dropped THEN the child keeps its position', () => {
