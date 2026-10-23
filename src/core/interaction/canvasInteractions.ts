@@ -60,7 +60,7 @@ const CURSOR = { idle: '', grab: 'grab', grabbing: 'grabbing', button: 'pointer'
 
 /**
  * Canvas pointer interactions (spec I1-I5): pan/zoom, drag to reposition (push-apart on drop) or to reparent
- * (drop onto a node, after a confirmation the user can turn off), hover "+" / "x" buttons, double-click inline rename, plus the pending / rejected feedback.
+ * (drop onto a node, after a confirmation the user can turn off), hover "+" button, double-click inline rename, plus the pending / rejected feedback.
  * Structural edits only ever go through `EditSession` (the host confirms); repositions are library-local
  * overrides reported via `onNodeReposition`. This class is the DOM wiring; the decisions live in DOM-free units
  * (`PointerGesture`, `hitTest`, `LocalEditState`, `ReparentConfirmation`).
@@ -232,8 +232,7 @@ export class CanvasInteractions {
   private onClick(target: PressTarget): void {
     if (target.kind !== 'handle') return;
     const { handle } = target;
-    if (handle.kind === 'add-child') this.openAddDraft(handle.nodeId, handle.side, '');
-    else this.submit({ type: 'delete', nodeId: handle.nodeId });
+    this.openAddDraft(handle.nodeId, handle.side, '');
   }
 
   // ---- drag ----
@@ -390,7 +389,7 @@ export class CanvasInteractions {
   private updateHover(screen: Point): void {
     if (this.painted === null || this.shownDrag() !== null) return;
     const target = this.targetAt(this.painted, screen);
-    const nodeId = target.kind === 'node' ? target.nodeId : target.kind === 'handle' ? target.handle.nodeId : null;
+    const nodeId = hoveredNodeOf(target);
     this.setHover(nodeId !== null && !isTransient(nodeId) ? nodeId : null, target.kind === 'handle' ? target.handle : null);
     this.updateCursor(target);
   }
@@ -441,6 +440,7 @@ export class CanvasInteractions {
       case 'node':
         // The root never moves (spec R23), so dragging it pans like empty canvas.
         return this.isMovable(scene, target.nodeId) ? target : CANVAS_PRESS;
+      case 'near-handles':
       case 'empty':
         return CANVAS_PRESS;
     }
@@ -469,6 +469,19 @@ export class CanvasInteractions {
     const { canvas } = this.host;
     canvas.addEventListener(type, handler, options);
     this.removeListeners.push(() => canvas.removeEventListener(type, handler, options));
+  }
+}
+
+/** Node whose buttons a pointer over `target` keeps shown, if any. */
+function hoveredNodeOf(target: PointerTarget): NodeId | null {
+  switch (target.kind) {
+    case 'node':
+    case 'near-handles':
+      return target.nodeId;
+    case 'handle':
+      return target.handle.nodeId;
+    case 'empty':
+      return null;
   }
 }
 

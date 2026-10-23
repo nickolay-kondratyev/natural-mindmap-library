@@ -13,13 +13,15 @@ const PAN_DELTA: Point = { x: 80, y: 50 };
 const WHEEL_ZOOM_IN_DELTA_Y = -200;
 /** `toBeCloseTo` digits: the drop must land within half a CSS px of the pointer. */
 const WITHIN_HALF_PX = 0;
+/** Screen px per pointer move on the way to a "+": finer than the gap before it, like a real mouse. */
+const POINTER_STEP_PX = 1;
 
 async function parentOf(page: Page, nodeId: NodeId): Promise<NodeId | null | undefined> {
   return (await hostData(page)).find((node) => node.id === nodeId)?.parentId;
 }
 
 test.describe('canvas interactions (spec I1-I5)', () => {
-  test('GIVEN the reference map WHEN the "+" of VIDA is clicked and a label typed THEN the host gets a new child of VIDA', async ({
+  test('GIVEN the reference map WHEN the pointer moves from VIDA to its "+", clicks it and types a label THEN the host gets a new child of VIDA', async ({
     page,
   }) => {
     await page.goto('/');
@@ -28,7 +30,7 @@ test.describe('canvas interactions (spec I1-I5)', () => {
     // VIDA is on the right side, so its "+" sits just right of it.
     const plus = { x: vida.center.x + vida.size.width / 2 + (HANDLE_GAP + HANDLE_RADIUS) * zoom, y: vida.center.y };
     await page.mouse.move(vida.center.x, vida.center.y);
-    await page.mouse.move(plus.x, plus.y);
+    await page.mouse.move(plus.x, plus.y, { steps: Math.ceil((plus.x - vida.center.x) / POINTER_STEP_PX) });
     await page.mouse.click(plus.x, plus.y);
     await page.getByRole('textbox', { name: LABEL_EDITOR_ACCESSIBLE_NAME }).fill('Romeo');
     await page.keyboard.press('Enter');
@@ -98,20 +100,6 @@ test.describe('canvas interactions (spec I1-I5)', () => {
       await expect.poll(async () => (await nodeBox(page, 'vida')).center.y).toBeCloseTo(dropPoint.y, WITHIN_HALF_PX);
       expect((await hostData(page)).find((node) => node.id === 'vida')?.parentId).toBe('root');
     });
-  });
-
-  test('GIVEN the reference map WHEN the "x" above TRAGEDIA is clicked THEN the host no longer has it or its children (spec D4)', async ({
-    page,
-  }) => {
-    await page.goto('/');
-    const tragedia = await nodeBox(page, 'tragedia');
-    const zoom = await viewZoom(page);
-    const cross = { x: tragedia.center.x, y: tragedia.center.y - tragedia.size.height / 2 - (HANDLE_GAP + HANDLE_RADIUS) * zoom };
-    await page.mouse.move(tragedia.center.x, tragedia.center.y);
-    await page.mouse.move(cross.x, cross.y);
-    await page.mouse.click(cross.x, cross.y);
-    const removedIds = ['tragedia', 'macbeth', 'king-lear'];
-    await expect.poll(async () => (await hostData(page)).filter((node) => removedIds.includes(node.id))).toEqual([]);
   });
 
   test.describe('GIVEN the reference map and a point on bare canvas (spec I1)', () => {

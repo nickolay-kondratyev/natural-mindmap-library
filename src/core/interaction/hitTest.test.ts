@@ -8,7 +8,6 @@ const NODE_SIZE: NodeSize = { width: 100, height: 40 };
 const HALF_WIDTH = NODE_SIZE.width / 2;
 const HALF_HEIGHT = NODE_SIZE.height / 2;
 const HANDLE_REACH_X = HALF_WIDTH + HANDLE_GAP + HANDLE_RADIUS;
-const HANDLE_REACH_Y = HALF_HEIGHT + HANDLE_GAP + HANDLE_RADIUS;
 
 // GIVEN a root, a right node `r`, a left node `l`, and `top` drawn last and overlapping `r`
 const data: MindmapData = [
@@ -63,17 +62,12 @@ describe('nodeHandles', () => {
   });
 
   it('WHEN asked for the root THEN it offers a "+" for each side', () => {
-    const sides = nodeHandles(scene, 'root').flatMap((handle) => (handle.kind === 'add-child' ? [handle.side] : []));
+    const sides = nodeHandles(scene, 'root').map((handle) => handle.side);
     expect(sides).toEqual(['left', 'right']);
   });
 
-  it('WHEN asked for the root THEN it offers no delete button', () => {
-    expect(nodeHandles(scene, 'root').some((handle) => handle.kind === 'delete')).toBe(false);
-  });
-
-  it('WHEN asked for a non-root node THEN its delete button sits above it', () => {
-    const remove = nodeHandles(scene, 'l').find((handle) => handle.kind === 'delete');
-    expect(remove?.center).toEqual({ x: -300, y: -HANDLE_REACH_Y });
+  it('WHEN asked for a non-root node THEN it offers only its "+" (no delete button)', () => {
+    expect(nodeHandles(scene, 'l').map((handle) => handle.kind)).toEqual(['add-child']);
   });
 });
 
@@ -91,6 +85,21 @@ describe('pointerTargetAt', () => {
 
   it('GIVEN a node is hovered WHEN the point is on another node THEN that node is hit', () => {
     expect(pointerTargetAt(scene, { x: 0, y: 0 }, ellipseShape, 'l')).toEqual({ kind: 'node', nodeId: 'root' });
+  });
+
+  it('GIVEN the node is hovered WHEN the point is in the gap between it and its "+" THEN the node keeps its hover', () => {
+    const gap = { x: -300 - HALF_WIDTH - HANDLE_GAP / 2, y: 0 };
+    expect(pointerTargetAt(scene, gap, ellipseShape, 'l')).toEqual({ kind: 'near-handles', nodeId: 'l' });
+  });
+
+  it('GIVEN no node is hovered WHEN the point is in the gap next to a node THEN it is empty canvas', () => {
+    const gap = { x: -300 - HALF_WIDTH - HANDLE_GAP / 2, y: 0 };
+    expect(pointerTargetAt(scene, gap, ellipseShape, null)).toEqual({ kind: 'empty' });
+  });
+
+  it('GIVEN the node is hovered WHEN the point is just above its bounding box THEN it is empty canvas', () => {
+    const justAbove = { x: -300, y: -HALF_HEIGHT - 1 };
+    expect(pointerTargetAt(scene, justAbove, ellipseShape, 'l')).toEqual({ kind: 'empty' });
   });
 
   it('GIVEN the node is hovered WHEN the point is just outside its "+" THEN the "+" is not hit', () => {
