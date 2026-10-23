@@ -1,6 +1,7 @@
 import { DEFAULT_THEME, type ThemeConfig } from './theme';
 import type { NodeSize } from '../model/node';
 import { DEFAULT_LAYOUT_CONFIG, type LayoutConfig } from '../layout/layoutConfig';
+import { GOLDEN_RATIO } from '../math/goldenRatio';
 
 /** Depth-based node sizing (spec R4): `rootSize * depthScale^depth`, never below `minScale * rootSize`. */
 export interface NodeSizeConfig {
@@ -53,7 +54,6 @@ export type DeepPartial<T> = T extends readonly unknown[]
 export type PartialMindmapConfig = DeepPartial<MindmapConfig>;
 
 const KALAM_TTF_URL = 'https://cdn.jsdelivr.net/fontsource/fonts/kalam@latest/latin-400-normal.ttf';
-const GOLDEN_RATIO = (1 + Math.sqrt(5)) / 2;
 
 export const DEFAULT_CONFIG: MindmapConfig = {
   theme: DEFAULT_THEME,

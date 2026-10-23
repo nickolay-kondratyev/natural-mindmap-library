@@ -22,4 +22,11 @@ describe('buildScene', () => {
     });
     expect(consistent).toBe(true);
   });
+
+  it('WHEN a host stage leaves a node unpositioned THEN building fails plainly naming the node', () => {
+    const emptyStage = { name: 'empty', run: () => new Map() };
+    expect(() => buildScene(REFERENCE_DATA, DEFAULT_CONFIG, { ...DEFAULT_EXTENSIONS, layoutStages: [emptyStage] })).toThrow(
+      'no position for node [root]',
+    );
+  });
 });

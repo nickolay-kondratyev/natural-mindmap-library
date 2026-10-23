@@ -2,7 +2,7 @@ Use typical best practices and idiomatic code.
 Goal right now is to implement [spec.md](spec.md). Architecture and module seams: [docs/architecture.md](docs/architecture.md).
 
 ## Commands
-- `npm install` — deps + Playwright Chromium (postinstall runs `scripts/install-browsers.mjs`, skipped when Chromium is present).
+- `npm install` — deps + Playwright Chromium (the `prepare` script runs `scripts/install-browsers.mjs`, skipped when Chromium is present).
 - `npm run typecheck` · `npm test` (Vitest) · `npm run build` (library to `dist/`) · `npm run e2e` (Playwright).
 - `npm run dev` — demo at `http://localhost:$PORT` (default 5173). `npm run build:demo && npm run preview` serves the built demo on `$E2E_PORT` (default 4173).
 

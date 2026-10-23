@@ -5,7 +5,7 @@ import type { NodeColorMap } from '../color/colorStrategy';
 import { StraightPath, type Branch } from '../geometry/branchPath';
 import { runLayoutPipeline } from '../layout/pipeline';
 import type { NodePositions } from '../layout/layoutTypes';
-import type { MindmapData, Point } from '../model/node';
+import type { MindmapData, NodeId, Point } from '../model/node';
 import { buildTree, type MindmapTree } from '../model/tree';
 import { resolveNodeSizes, type NodeSizeMap } from '../size/nodeSizeResolver';
 
@@ -31,11 +31,21 @@ export function buildScene(data: MindmapData, config: MindmapConfig, extensions:
 
 /** Scaffold placeholder: center-to-center straight segments; the branch ticket swaps in curved geometry. */
 function straightBranches(tree: MindmapTree, positions: NodePositions): Branch[] {
-  return tree.nodes
-    .filter((node) => node.parentId !== null)
-    .map((node) => ({
-      parentId: node.parentId as string,
+  const branches: Branch[] = [];
+  for (const node of tree.nodes) {
+    if (node.parentId === null) continue;
+    branches.push({
+      parentId: node.parentId,
       childId: node.id,
-      path: new StraightPath(positions.get(node.parentId as string) as Point, positions.get(node.id) as Point),
-    }));
+      path: new StraightPath(positionOf(positions, node.parentId), positionOf(positions, node.id)),
+    });
+  }
+  return branches;
+}
+
+/** Fails plainly when a (host-supplied) layout stage left a node unpositioned instead of producing NaN geometry. */
+function positionOf(positions: NodePositions, id: NodeId): Point {
+  const position = positions.get(id);
+  if (position === undefined) throw new Error(`Layout pipeline produced no position for node [${id}]`);
+  return position;
 }

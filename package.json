@@ -20,7 +20,7 @@
     }
   },
   "scripts": {
-    "postinstall": "node scripts/install-browsers.mjs",
+    "prepare": "node scripts/install-browsers.mjs",
     "dev": "vite",
     "build": "vite build --config vite.lib.config.ts",
     "build:demo": "vite build",

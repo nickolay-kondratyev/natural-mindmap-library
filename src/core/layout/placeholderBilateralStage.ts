@@ -1,4 +1,4 @@
-import type { Point } from '../model/node';
+import type { NodeId, Point } from '../model/node';
 import type { LayoutContext, LayoutStage, NodePositions } from './layoutTypes';
 
 /**
@@ -9,7 +9,7 @@ export const placeholderBilateralStage: LayoutStage = {
   name: 'placeholder-bilateral',
   run(_positions: NodePositions, context: LayoutContext): NodePositions {
     const { tree, config } = context;
-    const positions = new Map<string, Point>();
+    const positions = new Map<NodeId, Point>();
     positions.set(tree.root.id, { x: 0, y: 0 });
     for (const side of ['left', 'right'] as const) {
       const direction = side === 'left' ? -1 : 1;
@@ -28,8 +28,8 @@ export const placeholderBilateralStage: LayoutStage = {
 };
 
 function centerColumnsOnRoot(
-  positions: Map<string, Point>,
-  ids: readonly string[],
+  positions: Map<NodeId, Point>,
+  ids: readonly NodeId[],
   tree: LayoutContext['tree'],
   verticalGap: number,
 ): void {

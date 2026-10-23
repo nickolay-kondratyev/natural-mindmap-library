@@ -17,7 +17,7 @@ Without React: `mountMindmap(canvas, { data })` returns a handle with `setData`,
 ## Develop
 
 ```bash
-npm install         # deps + Playwright Chromium (postinstall)
+npm install         # deps + Playwright Chromium (`prepare` script, dev checkouts only)
 npm run dev         # demo on http://localhost:5173 (PORT=... to change)
 npm run typecheck && npm test && npm run build
 npm run e2e         # builds the demo, serves it on E2E_PORT (default 4173), runs Playwright

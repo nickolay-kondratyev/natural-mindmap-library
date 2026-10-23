@@ -45,9 +45,11 @@ class CanvasMount implements MindmapHandle {
     this.data = options.data;
     this.config = resolveConfig(options.config);
     this.extensions = resolveExtensions(options.extensions);
-    this.viewport = { width: canvas.clientWidth, height: canvas.clientHeight, devicePixelRatio: 1 };
     this.scheduler = new RepaintScheduler(() => this.paint(), options.frames ?? windowFrameScheduler);
-    this.scheduler.request();
+    // Size the backing store from the canvas's CSS box right away so the first paint is correct even for
+    // hosts that never call `resize` (the React wrapper does, via ResizeObserver).
+    this.viewport = { width: canvas.clientWidth, height: canvas.clientHeight, devicePixelRatio: window.devicePixelRatio };
+    this.applyViewport();
   }
 
   setData(data: MindmapData): void {
@@ -67,13 +69,18 @@ class CanvasMount implements MindmapHandle {
 
   resize(width: number, height: number, devicePixelRatio: number): void {
     this.viewport = { width, height, devicePixelRatio };
-    this.canvas.width = Math.round(width * devicePixelRatio);
-    this.canvas.height = Math.round(height * devicePixelRatio);
-    this.scheduler.request();
+    this.applyViewport();
   }
 
   destroy(): void {
     this.scheduler.cancel();
+  }
+
+  /** Sizes the backing store to the viewport (which clears the canvas) and schedules a repaint. */
+  private applyViewport(): void {
+    this.canvas.width = Math.round(this.viewport.width * this.viewport.devicePixelRatio);
+    this.canvas.height = Math.round(this.viewport.height * this.viewport.devicePixelRatio);
+    this.scheduler.request();
   }
 
   private paint(): void {
