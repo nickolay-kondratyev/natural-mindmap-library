@@ -22,8 +22,7 @@ on the handle (or the `<Mindmap ref>`), user changes reported via `onViewChange`
 ## Demo runner
 
 ```bash
-npm install
-npm run dev         # open http://localhost:5173
+./run.sh            # installs deps if needed, then serves http://localhost:5173 (PORT=... to change)
 ```
 
 Starts on the Shakespeare reference map with default settings. The side panel has:
