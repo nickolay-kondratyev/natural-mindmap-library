@@ -92,6 +92,12 @@ describe('pointerTargetAt', () => {
     expect(pointerTargetAt(scene, gap, ellipseShape, 'l')).toEqual({ kind: 'near-handles', nodeId: 'l' });
   });
 
+  it('GIVEN the node is hovered WHEN the point is in its hover area but on a neighbouring node THEN the neighbour is hit', () => {
+    // Inside `r`'s hover area, off its "+" and off `r` itself, but on `top` (centered at x 340).
+    const onNeighbour = { x: 300 + HALF_WIDTH + 3, y: HALF_HEIGHT - 5 };
+    expect(pointerTargetAt(scene, onNeighbour, ellipseShape, 'r')).toEqual({ kind: 'node', nodeId: 'top' });
+  });
+
   it('GIVEN no node is hovered WHEN the point is in the gap next to a node THEN it is empty canvas', () => {
     const gap = { x: -300 - HALF_WIDTH - HANDLE_GAP / 2, y: 0 };
     expect(pointerTargetAt(scene, gap, ellipseShape, null)).toEqual({ kind: 'empty' });
