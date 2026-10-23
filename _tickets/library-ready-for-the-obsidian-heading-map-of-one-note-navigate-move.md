@@ -1,11 +1,12 @@
 ---
+closed_iso: 2026-10-23T20:49:54Z
 id: nid_rk795rjqzzksdjrhm03dy6s7l_e
 title: "Library ready for the Obsidian heading map of one note (navigate + move)"
-status: open
+status: closed
 deps: [nid_gbj85a2pad7yofsjnf7ng26ff_e, nid_t5ydqj1ar6fdjksdps0sk2e0g_e, nid_idiv2268vh6mpy2gbnkrjlgw6_e, nid_z8ks1fhjsspq9jgdh0mxtv4sm_e, nid_bjzc14tu7h3d3fjknqyfk17r5_e]
 links: [nid_gbj85a2pad7yofsjnf7ng26ff_e, nid_jhuq7jgjalnz6mv72937ivl1k_e]
 created_iso: 2026-10-23T20:02:16Z
-status_updated_iso: 2026-10-23T20:02:16Z
+status_updated_iso: 2026-10-23T20:49:54Z
 type: epic
 priority: 2
 assignee: CC_WITH-nickolaykondratyev
