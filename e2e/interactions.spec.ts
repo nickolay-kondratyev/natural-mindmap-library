@@ -4,9 +4,6 @@ import type { MindmapApi } from 'natural-mindmap/react';
 import { DEMO_REJECTION_REASON, REJECT_EDITS_PARAM } from '../demo/testHooks';
 import { expect, test } from './fixtures';
 
-/** Wide enough that the whole reference map is on screen at the default view. */
-test.use({ viewport: { width: 1600, height: 900 } });
-
 /** Several pointer moves per drag, so it crosses the drag threshold like a real hand would. */
 const DRAG_STEPS = 12;
 
