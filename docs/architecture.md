@@ -36,7 +36,7 @@ highlight / pending veil on top.
 | Dir | Owns | Key names |
 |---|---|---|
 | `model/` | Host data types, tree index, reference data | `MindmapNode`, `buildTree` -> `MindmapTree` (depth, side, ancestry), `REFERENCE_DATA` |
-| `config/` | Plain-data config + defaults + deep merge | `MindmapConfig`, `DEFAULT_CONFIG`, `resolveConfig`, `ThemeConfig` |
+| `config/` | Plain-data config + defaults + deep merge + settings storage seam | `MindmapConfig`, `DEFAULT_CONFIG`, `resolveConfig`, `ThemeConfig`, `SettingsStorage`, `SettingsPersistence`, `restoreConfig` |
 | `size/` | Single source of node sizes (R4) | `resolveNodeSizes(tree, config.node)` -> `NodeSizeMap` |
 | `layout/` | Layout `type` union + stage pipeline + bow curve + default stages + user position overrides | `LayoutConfig`, `LayoutStage`, `LayoutContext`, `runLayoutPipeline`, `defaultLayoutStages`, `layoutMindmap`, `BowCurve`, `tidyTreeStage`, `rootBowStage`, `handDrawnJitterStage`, `collisionStage` / `resolveCollisions`, `applyPositionOverrides`, `moveSubtree` |
 | `geometry/` | Branch path representation + limb geometry | `BranchPath { length, sampleAt(arcLength) -> { point, tangent } }`, `Branch { path, width }`, `CubicBezierPath`, `buildBranches` (curves + fork + routing), `taperedOutline` |
@@ -102,6 +102,13 @@ highlight / pending veil on top.
   pending; view actions stay available. While pending, `preview` is derived from the current confirmed data
   (`add` uses `PENDING_NODE_ID`; `delete` keeps the subtree visible); `rejected` keeps the request for retry.
   No library-side timeout. `applyEdit` is the pure apply used by `InMemoryHost` and the preview.
+- **Settings storage**: `SettingsStorage { load(): Promise<unknown>; save(config): Promise<void> }` is the host's
+  persistence (Obsidian `loadData`/`saveData`, `localStorage`); the library decides what and when, the host only
+  stores it. `SettingsPersistence.load()` runs `restoreConfig` (stored data is untrusted: each `DEFAULT_CONFIG` leaf
+  keeps the stored value only if it has the default's type, unknown keys dropped, arrays only whole and same-length,
+  unknown `layout.type` -> default layout) and returns defaults when the load fails. `save` is fire-and-forget with one
+  write in flight, later changes coalescing into one follow-up write of the latest. Failures are `console.warn`ed,
+  never thrown. Opt-in: without it the host just passes `config`.
 - **View** (I1): `screen = viewportCenter + offset + zoom * scene` (CSS px). `ViewController` reports
   changes it makes (pan, cursor-anchored zoom, API zoom/reset, the initial fit) via `onViewChange`; host `setView` is not echoed
   and, before the first paint, takes precedence over the initial fit.
@@ -139,7 +146,8 @@ page and loads none of the runner code or CSS.
 - `settings/` (D3): the panel is derived from `DEFAULT_CONFIG`'s shape (`settingsModel.ts`), so a new config leaf gets
   a control without panel code. Numbers need a slider range in `settingSpecs.ts` `NUMBER_RANGES`, a `Record` over
   every numeric config path, so a new number does not compile until it has one. The runner passes the full
-  `MindmapConfig` as `config`; "Reset settings" puts `DEFAULT_CONFIG` back.
+  `MindmapConfig` as `config`; "Reset settings" puts `DEFAULT_CONFIG` back. `usePersistedConfig` loads the settings
+  through `SettingsPersistence` over `LocalStorageSettings` before the runner renders and saves every change.
 
 ## Testing
 
