@@ -1,1 +1,1 @@
-export { Mindmap, type MindmapProps } from './Mindmap';
+export { Mindmap, type MindmapApi, type MindmapProps } from './Mindmap';
