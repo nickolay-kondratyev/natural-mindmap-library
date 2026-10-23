@@ -1,4 +1,5 @@
 ---
+profile: standard
 id: nid_gbj85a2pad7yofsjnf7ng26ff_e
 title: "Make the plus work nice and remove the X for now."
 status: open
