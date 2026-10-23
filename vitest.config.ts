@@ -7,5 +7,11 @@ export default defineConfig({
     globals: true,
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'demo/**/*.test.ts'],
     environment: 'node',
+    // `npm run coverage`: a report only, no threshold gate.
+    coverage: {
+      provider: 'v8',
+      include: ['src/**', 'demo/**'],
+      exclude: ['**/*.test.ts', '**/*.test.tsx', 'test-support/**'],
+    },
   },
 });

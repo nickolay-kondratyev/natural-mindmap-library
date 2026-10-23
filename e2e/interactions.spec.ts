@@ -1,20 +1,19 @@
-import type { Page } from '@playwright/test';
 import { HANDLE_GAP, HANDLE_RADIUS, LABEL_EDITOR_ACCESSIBLE_NAME, type Point } from 'natural-mindmap';
 import { DEMO_REJECTION_REASON } from '../demo/host/demoHost';
-import { hostData, nodeBox, renameByDoubleClick, textOf, viewZoom } from './demoPage';
+import { dragFromTo, emptyCanvasPoint, hostData, nodeBox, nodesAt, renameByDoubleClick, textOf, viewOf, viewZoom } from './demoPage';
 import { expect, test } from './fixtures';
 
-/** Several pointer moves per drag, so it crosses the drag threshold like a real hand would. */
-const DRAG_STEPS = 12;
+/** Screen px above VIDA to drop it at; the test checks no node is there (the topmost, Hamlet, is ~25 px above VIDA). */
+const EMPTY_SPACE_ABOVE_VIDA_PX = 150;
+/** How far below the canvas top edge the pan / wheel point sits; the fitted map leaves a wider margin above it. */
+const EMPTY_CANVAS_INSET_PX = 40;
+const PAN_DELTA: Point = { x: 80, y: 50 };
+/** Negative = zoom in, like `WheelEvent.deltaY`. */
+const WHEEL_ZOOM_IN_DELTA_Y = -200;
+/** `toBeCloseTo` digits: the drop must land within half a CSS px of the pointer. */
+const WITHIN_HALF_PX = 0;
 
-async function dragFromTo(page: Page, from: Point, to: Point): Promise<void> {
-  await page.mouse.move(from.x, from.y);
-  await page.mouse.down();
-  await page.mouse.move(to.x, to.y, { steps: DRAG_STEPS });
-  await page.mouse.up();
-}
-
-test.describe('canvas interactions (spec I3-I5)', () => {
+test.describe('canvas interactions (spec I1-I5)', () => {
   test('GIVEN the reference map WHEN the "+" of VIDA is clicked and a label typed THEN the host gets a new child of VIDA', async ({
     page,
   }) => {
@@ -43,6 +42,76 @@ test.describe('canvas interactions (spec I3-I5)', () => {
     const poesia = await nodeBox(page, 'poesia');
     await dragFromTo(page, hamlet.center, poesia.center);
     await expect.poll(async () => (await hostData(page)).find((node) => node.id === 'hamlet')?.parentId).toBe('poesia');
+  });
+
+  test.describe('GIVEN VIDA dragged into empty space above it (spec I2)', () => {
+    let dropPoint: Point;
+    let hamletStart: Point;
+    test.beforeEach(async ({ page }) => {
+      await page.goto('/');
+      const vida = await nodeBox(page, 'vida');
+      hamletStart = (await nodeBox(page, 'hamlet')).center;
+      dropPoint = { x: vida.center.x, y: vida.center.y - EMPTY_SPACE_ABOVE_VIDA_PX };
+      expect(await nodesAt(page, dropPoint), 'the drop point must be bare canvas').toEqual([]);
+      await dragFromTo(page, vida.center, dropPoint);
+    });
+
+    test('WHEN dropped THEN VIDA is drawn at the drop point', async ({ page }) => {
+      await expect.poll(async () => (await nodeBox(page, 'vida')).center.y).toBeCloseTo(dropPoint.y, WITHIN_HALF_PX);
+    });
+
+    test('WHEN dropped THEN its child Hamlet moved along with it', async ({ page }) => {
+      const expectedY = hamletStart.y - EMPTY_SPACE_ABOVE_VIDA_PX;
+      await expect.poll(async () => (await nodeBox(page, 'hamlet')).center.y).toBeCloseTo(expectedY, WITHIN_HALF_PX);
+    });
+
+    test('WHEN dropped THEN the host data keeps VIDA under the root', async ({ page }) => {
+      await expect.poll(async () => (await nodeBox(page, 'vida')).center.y).toBeCloseTo(dropPoint.y, WITHIN_HALF_PX);
+      expect((await hostData(page)).find((node) => node.id === 'vida')?.parentId).toBe('root');
+    });
+  });
+
+  test('GIVEN the reference map WHEN the "x" above TRAGEDIA is clicked THEN the host no longer has it or its children (spec D4)', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    const tragedia = await nodeBox(page, 'tragedia');
+    const zoom = await viewZoom(page);
+    const cross = { x: tragedia.center.x, y: tragedia.center.y - tragedia.size.height / 2 - (HANDLE_GAP + HANDLE_RADIUS) * zoom };
+    await page.mouse.move(tragedia.center.x, tragedia.center.y);
+    await page.mouse.move(cross.x, cross.y);
+    await page.mouse.click(cross.x, cross.y);
+    const removedIds = ['tragedia', 'macbeth', 'king-lear'];
+    await expect.poll(async () => (await hostData(page)).filter((node) => removedIds.includes(node.id))).toEqual([]);
+  });
+
+  test.describe('GIVEN the reference map and a point on bare canvas (spec I1)', () => {
+    let emptyPoint: Point;
+    test.beforeEach(async ({ page }) => {
+      await page.goto('/');
+      await nodeBox(page, 'root');
+      emptyPoint = await emptyCanvasPoint(page, EMPTY_CANVAS_INSET_PX);
+    });
+
+    test('WHEN empty canvas is dragged THEN the view pans by the drag distance', async ({ page }) => {
+      const before = await viewOf(page);
+      const to = { x: emptyPoint.x + PAN_DELTA.x, y: emptyPoint.y + PAN_DELTA.y };
+      await dragFromTo(page, emptyPoint, to);
+      // Rounded: the drag arrives as several fractional pointer moves whose float sum is not exact.
+      await expect
+        .poll(async () => {
+          const { offset } = await viewOf(page);
+          return { x: Math.round(offset.x - before.offset.x), y: Math.round(offset.y - before.offset.y) };
+        })
+        .toEqual(PAN_DELTA);
+    });
+
+    test('WHEN the wheel scrolls up over the canvas THEN the view zooms in', async ({ page }) => {
+      const before = await viewZoom(page);
+      await page.mouse.move(emptyPoint.x, emptyPoint.y);
+      await page.mouse.wheel(0, WHEEL_ZOOM_IN_DELTA_Y);
+      await expect.poll(() => viewZoom(page)).toBeGreaterThan(before);
+    });
   });
 
   test.describe('GIVEN the runner host is set to reject every change (spec D5)', () => {

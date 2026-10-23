@@ -108,7 +108,9 @@ highlight / pending veil on top.
   returns to that fit. Later data/resize changes leave the view alone.
 - **Pointer interactions** (I1-I5): `CanvasInteractions` is the only DOM-event code; the decisions are pure and
   unit-tested (`PointerGesture`: click vs pan vs node drag past `DRAG_THRESHOLD_PX`; `hitTest`: point -> node /
-  hover button, in scene coordinates against the last painted scene). Dragging empty canvas or the root pans; wheel
+  hover button, in scene coordinates against the last painted scene; `LocalEditState`: library-local state over
+  `EditSession` (position overrides, the draft child, the editor's last request) and what to display, keep or
+  reopen as edits go pending / confirmed / rejected). Dragging empty canvas or the root pans; wheel
   zooms at the cursor. A node drag moves its subtree over a frozen scene (no live push-apart, else the drop target
   would be pushed out from under the pointer); dropping onto a node sends `move` (the dragged subtree is never a
   target, so self/descendant drops cannot happen by drag and `findEditProblem` still guards), dropping elsewhere
@@ -139,8 +141,10 @@ page and loads none of the runner code or CSS.
 
 ## Testing
 
-- Unit (Vitest, node env, BDD naming): every module above has a sibling `*.test.ts`; so does the demo's settings/host logic. Canvas drawing
-  itself is not unit-tested; scene assembly and scheduling are.
+- Unit (Vitest, node env, BDD naming): pure logic (core modules and the demo's settings/host logic) has a sibling
+  `*.test.ts`. DOM and canvas wiring (`CanvasInteractions`, DOM overlays, canvas drawing, React) is kept thin and
+  covered by E2E plus the acceptance screenshot instead; when such wiring grows a decision, move it into a pure unit.
+  `npm run coverage` reports unit coverage (no threshold gate).
 - E2E (Playwright, Chromium): `e2e/` runs against the built demo served by `vite preview`. Import `test`
   from `e2e/fixtures.ts`: it aborts non-localhost requests and serves `*.ttf` from the vendored font.
   Canvas content has no DOM, so the demo exposes its `MindmapApi` as `window.mindmap` (`demo/testHooks.ts`); shared
