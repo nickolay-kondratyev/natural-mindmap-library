@@ -23,6 +23,8 @@ Architecture, module boundaries and the commands to build/test are in `docs/arch
 - Tune defaults (layout, taper, palette, text size, root styling) until the demo's reference view matches every bullet of spec §8 "Expected look"; record the judgement calls in `_agent_decisions/needs_review/` with the screenshot path under `.out/` (git-ignored).
 - One Playwright screenshot test of the reference view, rendered on a dedicated canvas-only demo route/page with zero config (not the full runner UI, so the settings panel added by nid_k9s0fwfj8y13qhmkr2c2um043_e cannot break the baseline), with fonts served from the vendored TTF (route interception, no network), deterministic across runs (Q1). Baseline committed under the Playwright snapshot dir.
 - Rendering is deterministic: rendering twice produces identical pixels.
+- The initial view fits the whole map with a margin (fit-to-content), and the view reset API (I1) returns to that fit. The current default view cuts off the outer leaves at a 1400px-wide viewport (`.out/merge-batch-4.png`, observed after branches merged). Fit logic is unit-tested.
+- Child larger than parent (spec R4 sub-bullet: per-node `size` override and `depthScale > 1`): an integration-level unit test runs layout + branches + labels on such data and asserts no node overlaps after collision, valid branch geometry (no NaN, positive widths), and a non-negative label span.
 
 ## Context
 - Depends on layout (nid_djtlbgb2q5iipx2go9fy2eogc_e), branches/colors (nid_u8rb9nyllrir2j6ditgfhu7uo_e), text (nid_q5cs3lr79q1xa2ebtbny5exc9_e); see `docs/architecture.md`.
