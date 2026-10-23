@@ -1,6 +1,8 @@
 # Hand-Drawn Mindmap — Requirements Spec
 
-> **Status (2026-10-23):** v1 implemented (epic `nid_hc65067veoxpca8wtir8bnj2e_e`). §7 sketch mode (rough.js) not started. Review decisions in `_agent_decisions/needs_review/`.
+> **Status (2026-10-23):** v1 implemented (epic `nid_hc65067veoxpca8wtir8bnj2e_e`); v0.2.0 adds what the Obsidian
+> heading map of one note needs (epic `nid_rk795rjqzzksdjrhm03dy6s7l_e`: L8 scene cache, I7-I10, R2/R19 options, the
+> R17 exception, D7/D8; see `CHANGELOG.md`). §7 sketch mode (rough.js) not started. Review decisions in `_agent_decisions/needs_review/`.
 
 ## 1. Goal
 
@@ -26,6 +28,8 @@ The library should expose the different settings, and we should also have a runn
 **Nodes**
 - R2. Every node is a filled **ellipse** with its label centered inside in straight text.
   - For now its ellipse yes but also think of extensibility that these can be replaced with other shapes and sizes so make sure this is built in extensible format.
+  - A label wider than its node shrinks to fit. Optional minimum (`text.nodeFit.minFontScale`, a fraction of the
+    font size): below it the label is cut and ends with "…". Default 0 = shrink without limit, never cut.
 - R3. The root is visually distinct: neutral dark slate fill, larger box, label is boldened.
   - yes root center is visually distinct.
 - R4. Node boxes shrink with tree depth (root largest, leaves smallest).
@@ -86,6 +90,9 @@ The library should expose the different settings, and we should also have a runn
 **Layout**
 - R19. The map is **bilateral**: first-level children split into a left and a right
   side; deeper nodes grow outward on their parent's side.
+  - First-level nodes without an explicit `side` are split by `layout.sideOrder`: `alternating` (default: right,
+    left, right, ... in data order) or `clockwise` (the first half on the right, top to bottom, then the second half
+    on the left, bottom to top, so the map reads in document order). An explicit `side` always wins.
 - R20. Auto layout produces a tidy tree per side (no overlapping subtrees), vertically
   centered on the root.
 - R21. First-level branches **fan out in an outward bow**: the farther a branch is
@@ -126,6 +133,9 @@ The library should expose the different settings, and we should also have a runn
 - L7. **Pure layout.** Layout is callable on its own (data in → positioned data out),
   so hosts can lay out, persist, or animate without rendering.
 - L8. Rendering is efficient: multiple changes within a frame coalesce into one paint.
+  - The scene (layout, branches, labels) is rebuilt only when data, config, extensions or dragged positions change;
+    hover, pan, zoom and the busy animation repaint the cached scene. `npm run bench` reports `buildScene` times per
+    map size (a report, not a test gate).
 
 ## 4. Key external libraries
 
@@ -188,6 +198,20 @@ structural edit is only shown as done once the host has actually done it.
 - I6. A default in-memory host confirms immediately, so the library works with no
   external system. The demo runner (§6a) uses it.
 
+**Host hooks for navigation** (e.g. click jumps to a heading, the map follows the editor cursor)
+- I7. Node click: a press and release on a node without a drag (root included) reports the node id and the held
+  modifier keys (Ctrl, Cmd, Alt, Shift) via `onNodeClick` (mount option and `<Mindmap>` prop). Drags, pans, hover
+  buttons and bare canvas are not node clicks. Every click is reported at once, so a double-click reports two clicks
+  (plus the rename, when renaming is on); clicks are not delayed to tell them apart.
+- I8. Highlight: the host rings one node, or none (`setHighlightedNode(id | null)` on the handle and the `<Mindmap>`
+  ref), in `theme.color.highlight`. An unknown id shows no ring.
+- I9. Center on node: `centerOnNode(id)` pans so the node sits at the canvas center, keeping the zoom; reported like
+  other library view changes (I1). An id not on the map does nothing.
+- I10. Edit switches: `interaction.allowAdd` and `interaction.allowRename` (default on) turn off the "+" and the
+  double-click rename editor, giving a move-only map; moving by drag still works through I3/I5.
+  `interaction.allowDelete` is reserved for a future in-map delete control (the map has none, I4). The switches gate
+  only the map's own controls, never requests the host sends itself (`requestEdit`).
+
 ## 6a. Demo runner (in scope for v1)
 
 A small React app shipped with the library.
@@ -201,6 +225,13 @@ A small React app shipped with the library.
 - D5. Host simulation toggle: make the in-memory host delay or reject requests, so
   pending and rejected states can be seen and tested without an external system.
 - D6. Reset the map to the reference data.
+- D7. Paste Markdown: the runner shows a pasted note's headings as the map, mapped the way the Obsidian heading map
+  will: the root is the single H1 if there is exactly one, else a fixed title ("Pasted note"); each heading's parent
+  is the nearest heading above it with a lower level (skipped levels attach to that heading); text before the first
+  heading is ignored; `#` lines inside fenced code blocks are not headings. The parser lives in `demo/` only (the
+  library stays Markdown-free). "Reset map" (D6) goes back to the reference data.
+- D8. Host hooks are visible: the runner highlights the clicked node (I7, I8) and shows which node and keys the
+  host was told.
 
 ## 8. Reference data (acceptance view)
 
