@@ -117,7 +117,7 @@ highlight / pending veil on top.
   would be pushed out from under the pointer); dropping onto a node sends `move` (the dragged subtree is never a
   target, so self/descendant drops cannot happen by drag and `findEditProblem` still guards), dropping elsewhere
   stores a library-local `PositionOverrides` entry and emits `onNodeReposition`. `buildScene(..., overrides)`
-  applies overrides after the pipeline and re-runs `resolveCollisions` with the overridden subtrees pinned (no
+  applies overrides after the pipeline and re-runs `resolveCollisions` with the overridden subtrees pinned in drop order (no
   overrides = pipeline output untouched); a drop carries descendants' own overrides along, and a confirmed `move`
   drops the moved subtree's overrides.
   Hover buttons: "+" on the outer side (both sides for the root) opens the inline editor on a local draft child
