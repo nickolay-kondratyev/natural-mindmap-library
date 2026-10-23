@@ -1,17 +1,17 @@
 ---
+closed_iso: 2026-10-23T01:10:43Z
 id: nid_k9s0fwfj8y13qhmkr2c2um043_e
 title: "Demo runner: settings panel, node editing, host simulation"
-status: in_progress
+status: closed
 deps: [nid_m9bylgyu4bb098rqygf91vtuo_e]
 links: []
 created_iso: 2026-10-22T23:56:09Z
-status_updated_iso: 2026-10-23T00:56:44Z
+status_updated_iso: 2026-10-23T01:10:43Z
 type: task
 parent: nid_hc65067veoxpca8wtir8bnj2e_e
 priority: 2
 assignee: CC_WITH-nickolaykondratyev
 tags: [mindmap-v1]
-pwd: /home/nickolaykondratyev/git_repos/nickolay-kondratyev_natural-mindmap-library/.worktree/t-k9s0fwfj
 ---
 ## Goal
 Ship the demo runner (spec §6a) that proves the public API is enough for a real host and lets a human tune every setting live.
