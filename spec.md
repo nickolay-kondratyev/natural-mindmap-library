@@ -1,5 +1,7 @@
 # Hand-Drawn Mindmap — Requirements Spec
 
+> **Status (2026-10-23):** v1 implemented (epic `nid_hc65067veoxpca8wtir8bnj2e_e`). §7 sketch mode (rough.js) not started. Review decisions in `_agent_decisions/needs_review/`.
+
 ## 1. Goal
 
 Build a **reusable TypeScript library** that renders a mindmap that **feels hand-drawn**, like mind mapping on paper:
