@@ -35,7 +35,7 @@ every setter just requests a repaint (spec L8).
 | `model/` | Host data types, tree index, reference data | `MindmapNode`, `buildTree` -> `MindmapTree` (depth, side, ancestry), `REFERENCE_DATA` |
 | `config/` | Plain-data config + defaults + deep merge | `MindmapConfig`, `DEFAULT_CONFIG`, `resolveConfig`, `ThemeConfig` |
 | `size/` | Single source of node sizes (R4) | `resolveNodeSizes(tree, config.node)` -> `NodeSizeMap` |
-| `layout/` | Layout `type` union + stage pipeline + bow curve | `LayoutConfig`, `LayoutStage`, `LayoutContext`, `runLayoutPipeline`, `defaultLayoutStages`, `BowCurve` |
+| `layout/` | Layout `type` union + stage pipeline + bow curve + default stages | `LayoutConfig`, `LayoutStage`, `LayoutContext`, `runLayoutPipeline`, `defaultLayoutStages`, `layoutMindmap`, `BowCurve`, `tidyTreeStage`, `rootBowStage`, `handDrawnJitterStage`, `collisionStage` / `resolveCollisions` |
 | `geometry/` | Shared branch path representation | `BranchPath { length, sampleAt(arcLength) -> { point, tangent } }`, `Branch`, `StraightPath` |
 | `shape/` | Node shape seam (R2) | `NodeShape { draw, contains, rimPoint }`, `ellipseShape` |
 | `color/` | Color strategy seam (R10/R11) | `ColorStrategy.resolve(tree, theme) -> NodeColorMap`, `parentDerivedColorStrategy` |
@@ -58,6 +58,12 @@ every setter just requests a repaint (spec L8).
   `defaultLayoutStages(config)` switches exhaustively on `config.type`; adding a layout `type` means
   extending the union in `layout/layoutConfig.ts` and the switch in `layout/pipeline.ts`.
   Scene coordinates: root at `(0, 0)`, +x right, +y down; the renderer centers the root in the viewport.
+  Bilateral defaults, in order: `tidy-tree` (d3-hierarchy per side, size-aware edge gaps; creates positions),
+  `root-bow` (shifts each first-level subtree outward by `bowCurve`), `hand-drawn-jitter` (offset hashed from
+  the node id, so deterministic and stable under edits), `collision` (push-apart, root pinned).
+  `layoutMindmap(data, { config, extensions })` is the standalone data-in -> positions-out entry (L7).
+- **Collision** (R23/I2): `resolveCollisions(positions, { tree, sizes, padding, pinnedIds })` is reusable outside
+  the pipeline (drag-time push-apart pins the dragged subtree); the root is always pinned.
 - **Bow curve** (R21): `BowCurve(normalizedVerticalDistance 0..1) -> normalizedHorizontalOffset 0..1`.
 - **Branch path** (R5/R12): arc-length parametrised so branch rendering (tapered outline) and
   text-along-curve (glyph placement) agree. Branches run center to center (R9); use
@@ -68,7 +74,6 @@ every setter just requests a repaint (spec L8).
 
 ## Placeholders owned by follow-up tickets
 
-- `layout/placeholderBilateralStage.ts`: grid layout -> tidy tree, bow, jitter, collision stages.
 - `render/scene.ts` `straightBranches`: straight segments -> curved tapered geometry.
 - `render/canvasRenderer.ts`: stroked lines and `fillText` labels -> filled limbs and glyph outlines.
 - `mount.ts`: no interaction/edit protocol/view model yet; those add fields to `MountOptions`/`MindmapHandle`.

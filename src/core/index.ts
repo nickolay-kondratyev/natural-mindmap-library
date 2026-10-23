@@ -22,7 +22,11 @@ export { DEFAULT_LAYOUT_CONFIG, type BilateralLayoutConfig, type LayoutConfig } 
 export type { LayoutContext, LayoutStage, NodePositions } from './layout/layoutTypes';
 export { goldenRatioBowCurve, type BowCurve } from './layout/bowCurve';
 export { defaultLayoutStages, runLayoutPipeline } from './layout/pipeline';
-export { placeholderBilateralStage } from './layout/placeholderBilateralStage';
+export { tidyTreeStage } from './layout/tidyTreeStage';
+export { rootBowStage } from './layout/rootBowStage';
+export { handDrawnJitterStage } from './layout/handDrawnJitterStage';
+export { collisionStage, resolveCollisions, type CollisionInput } from './layout/collisionStage';
+export { layoutMindmap, type LayoutMindmapOptions } from './layout/layoutMindmap';
 
 export { resolveNodeSizes, defaultSizeAtDepth, type NodeSizeMap } from './size/nodeSizeResolver';
 export { StraightPath, type Branch, type BranchPath, type PathSample } from './geometry/branchPath';
