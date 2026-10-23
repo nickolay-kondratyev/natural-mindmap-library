@@ -23,7 +23,7 @@ export type LayoutConfig = BilateralLayoutConfig;
 
 export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
   type: 'bilateral',
-  horizontalGap: 140,
+  horizontalGap: 120,
   verticalGap: 40,
   bowOffset: 120,
   jitterAmplitude: 6,

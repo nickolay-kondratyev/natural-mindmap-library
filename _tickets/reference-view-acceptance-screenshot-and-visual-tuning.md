@@ -1,17 +1,17 @@
 ---
+closed_iso: 2026-10-23T00:48:25Z
 id: nid_qgu2pl5p1q0spnndfwu9xe590_e
 title: "Reference view acceptance screenshot and visual tuning"
-status: in_progress
+status: closed
 deps: [nid_djtlbgb2q5iipx2go9fy2eogc_e, nid_u8rb9nyllrir2j6ditgfhu7uo_e, nid_q5cs3lr79q1xa2ebtbny5exc9_e]
 links: []
 created_iso: 2026-10-22T23:56:09Z
-status_updated_iso: 2026-10-23T00:35:28Z
+status_updated_iso: 2026-10-23T00:48:25Z
 type: task
 parent: nid_hc65067veoxpca8wtir8bnj2e_e
 priority: 2
 assignee: CC_WITH-nickolaykondratyev
 tags: [mindmap-v1]
-pwd: /home/nickolaykondratyev/git_repos/nickolay-kondratyev_natural-mindmap-library/.worktree/t-qgu2pl5p
 profile: higher
 ---
 ## Goal

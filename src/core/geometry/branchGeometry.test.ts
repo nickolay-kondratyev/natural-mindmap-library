@@ -77,6 +77,34 @@ describe('buildBranches', () => {
     });
   });
 
+  describe('GIVEN a wide parent whose two children sit close beyond its rim', () => {
+    const PARENT_HALF_WIDTH = 100;
+    const CHILD_X = 260;
+    const CHILD_HALF_SPREAD = 80;
+    const input = inputFrom([
+      { node: { id: 'p', parentId: null, text: 'P' }, at: { x: 0, y: 0 }, size: { width: PARENT_HALF_WIDTH * 2, height: 50 } },
+      { node: { id: 'up', parentId: 'p', text: 'U', side: 'right' }, at: { x: CHILD_X, y: -CHILD_HALF_SPREAD } },
+      { node: { id: 'down', parentId: 'p', text: 'D', side: 'right' }, at: { x: CHILD_X, y: CHILD_HALF_SPREAD } },
+    ]);
+    const branches = buildBranches(input);
+    /** y of the first centerline sample at or past the parent's right rim. */
+    function yAtRim(branch: Branch): number {
+      const STEPS = 1000;
+      for (let i = 0; i <= STEPS; i++) {
+        const point = pointAtFraction(branch, i / STEPS);
+        if (point.x >= PARENT_HALF_WIDTH) return point.y;
+      }
+      throw new Error('branch never crosses the parent rim');
+    }
+
+    it('WHEN the limbs cross the parent rim THEN they are still bundled: the fork is measured from the rim, not the center', () => {
+      // Measured from the center, the fork (0.38 of the 260 px reach) would sit inside the box and the siblings
+      // would already be about a third apart at the rim; from the rim they stay within a quarter.
+      const separationAtRim = Math.abs(yAtRim(branchTo(branches, 'up')) - yAtRim(branchTo(branches, 'down')));
+      expect(separationAtRim).toBeLessThan((2 * CHILD_HALF_SPREAD) / 4);
+    });
+  });
+
   describe('GIVEN a three-level chain', () => {
     const input = inputFrom([
       { node: { id: 'root', parentId: null, text: 'R' }, at: { x: 0, y: 0 } },
