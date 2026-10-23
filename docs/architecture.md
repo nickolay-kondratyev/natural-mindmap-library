@@ -123,14 +123,28 @@ highlight / pending veil on top.
   rejected edit sent from the editor reopens it with the typed label (I5.4).
   `MindmapHandle.getNodeScreenBox` / `getData` expose node boxes and confirmed data (host UI, E2E).
 
+## Demo runner (`demo/`, spec §6a)
+
+A host built only on the public API (D1). `index.html` is the runner; `reference.html` is the canvas-only acceptance
+page and loads none of the runner code or CSS.
+
+- `host/demoHost.ts` (`useDemoHost`): owns the data in React state like a real host (L2) and answers edits with the
+  library's `InMemoryHost`, whose delay/reject the "Host simulation" controls set (D4/D5). "Reset map" (D6) restores
+  `REFERENCE_DATA` and remounts `<Mindmap>` via `key` (clears dragged positions and the view); answers to requests
+  sent before the reset are dropped.
+- `settings/` (D3): the panel is derived from `DEFAULT_CONFIG`'s shape (`settingsModel.ts`), so a new config leaf gets
+  a control without panel code. Numbers need a slider range in `settingSpecs.ts` `NUMBER_RANGES`, a `Record` over
+  every numeric config path, so a new number does not compile until it has one. The runner passes the full
+  `MindmapConfig` as `config`; "Reset settings" puts `DEFAULT_CONFIG` back.
+
 ## Testing
 
-- Unit (Vitest, node env, BDD naming): every module above has a sibling `*.test.ts`. Canvas drawing
+- Unit (Vitest, node env, BDD naming): every module above has a sibling `*.test.ts`; so does the demo's settings/host logic. Canvas drawing
   itself is not unit-tested; scene assembly and scheduling are.
 - E2E (Playwright, Chromium): `e2e/` runs against the built demo served by `vite preview`. Import `test`
   from `e2e/fixtures.ts`: it aborts non-localhost requests and serves `*.ttf` from the vendored font.
-  Canvas content has no DOM, so the demo exposes its `MindmapApi` as `window.mindmap` (`demo/testHooks.ts`;
-  `?rejectEdits` makes its host reject every edit).
+  Canvas content has no DOM, so the demo exposes its `MindmapApi` as `window.mindmap` (`demo/testHooks.ts`); shared
+  page helpers live in `e2e/demoPage.ts`. Settings controls carry `data-testid="setting:<dotted.config.path>"`.
 - Acceptance screenshot (spec Q3): `e2e/reference-view.spec.ts` shoots `demo/reference.html`, a canvas-only
   page (zero config, reference data, no React) at a fixed 1400x900 / DPR 1 viewport; the baseline lives in
   `e2e/reference-view.spec.ts-snapshots/`. It is the only look assertion in the repo; re-baseline with
