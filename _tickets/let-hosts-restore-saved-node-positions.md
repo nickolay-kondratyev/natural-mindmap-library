@@ -9,14 +9,20 @@ status_updated_iso: 2026-10-23T01:11:55Z
 type: task
 priority: 3
 assignee: CC_WITH-nickolaykondratyev
-tags: [mindmap-v1, decide]
+tags: [mindmap-v1]
 ---
 
 ## Goal
 Hosts like Obsidian need dragged node positions to survive a reload. Today the library reports repositions via the position-change event (spec I2) but offers no way to hand saved positions back, so every reload snaps nodes back to auto layout.
 
-## Decision needed
-Is this worth doing before a real host (e.g. Obsidian plugin) exists? Options: (a) add it now; (b) wait until a host needs it. Recommendation: (b) — the demo has no persistence, so nothing exercises it yet (Pareto). See `_agent_decisions/needs_review/2026-10-22-v1-ticket-plan-decisions.md` item 2.
+## Decision (2026-10-23, human): wait
+Deferred until a real host (e.g. the Obsidian plugin) needs it. Do not start this ticket before then.
+
+Open design question to settle when this is picked up: **how a saved position finds its node again.** Hosts may not have one stable id per node. Example, Obsidian:
+- `id` in the note's frontmatter is the golden identity, used when present.
+- We do not want to force an `id` onto every note, so fall back to weaker identities such as file path, then file name.
+
+So matching probably needs layered identities: each node can carry several, each with a priority, and a saved position matches through the strongest one available. Settle this with the real host before building the API below.
 
 ## Done criteria
 - Hosts can pass saved positions (by node id) at mount and update them later via the public API and `<Mindmap>` props; layout honors them as overrides; positions for unknown ids are ignored.
