@@ -2,10 +2,11 @@ import type { MindmapConfig } from '../config/config';
 import type { MindmapExtensions } from '../extensions';
 import { layoutStagesFor } from '../extensions';
 import type { NodeColorMap } from '../color/colorStrategy';
-import { StraightPath, type Branch } from '../geometry/branchPath';
+import type { Branch } from '../geometry/branchPath';
+import { buildBranches } from '../geometry/branchGeometry';
 import { runLayoutPipeline } from '../layout/pipeline';
 import type { NodePositions } from '../layout/layoutTypes';
-import type { MindmapData, NodeId, Point } from '../model/node';
+import type { MindmapData } from '../model/node';
 import { buildTree, type MindmapTree } from '../model/tree';
 import { resolveNodeSizes, type NodeSizeMap } from '../size/nodeSizeResolver';
 
@@ -26,26 +27,6 @@ export function buildScene(data: MindmapData, config: MindmapConfig, extensions:
     layoutStagesFor(extensions, config.layout),
   );
   const colors = extensions.colorStrategy.resolve(tree, config.theme);
-  return { tree, sizes, positions, colors, branches: straightBranches(tree, positions) };
-}
-
-/** Scaffold placeholder: center-to-center straight segments; the branch ticket swaps in curved geometry. */
-function straightBranches(tree: MindmapTree, positions: NodePositions): Branch[] {
-  const branches: Branch[] = [];
-  for (const node of tree.nodes) {
-    if (node.parentId === null) continue;
-    branches.push({
-      parentId: node.parentId,
-      childId: node.id,
-      path: new StraightPath(positionOf(positions, node.parentId), positionOf(positions, node.id)),
-    });
-  }
-  return branches;
-}
-
-/** Fails plainly when a (host-supplied) layout stage left a node unpositioned instead of producing NaN geometry. */
-function positionOf(positions: NodePositions, id: NodeId): Point {
-  const position = positions.get(id);
-  if (position === undefined) throw new Error(`Layout pipeline produced no position for node [${id}]`);
-  return position;
+  const branches = buildBranches({ tree, positions, sizes, config: config.branch });
+  return { tree, sizes, positions, colors, branches };
 }

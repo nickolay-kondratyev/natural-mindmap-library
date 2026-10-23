@@ -16,11 +16,18 @@ export interface BranchPath {
   sampleAt(arcLength: number): PathSample;
 }
 
+/** Limb thickness in px where it leaves the parent and where it reaches the child (spec R5). */
+export interface BranchWidth {
+  readonly start: number;
+  readonly end: number;
+}
+
 /** One parent -> child link with its geometry; the renderer draws branches center to center (spec R9). */
 export interface Branch {
   readonly parentId: NodeId;
   readonly childId: NodeId;
   readonly path: BranchPath;
+  readonly width: BranchWidth;
 }
 
 /** Straight segment; the scaffold default and a handy synthetic curve for tests. */
