@@ -3,7 +3,7 @@ id: nid_jwzqlvies2bizylbq7bhpieh4_e
 title: "settings storage plaggability"
 status: in_progress
 deps: []
-links: []
+links: [nid_kkm4447dku0vlz0ry1zwr2v8k_e]
 created_iso: 2026-10-23T16:47:06Z
 status_updated_iso: 2026-10-23T16:49:58Z
 type: task
