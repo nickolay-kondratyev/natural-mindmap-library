@@ -2,7 +2,7 @@ import { DEFAULT_CONFIG, type MindmapConfig } from 'natural-mindmap';
 import { PanelSection } from '../PanelSection';
 import { valueAt, withValueAt } from './configPath';
 import { SettingControl } from './SettingControl';
-import { settingSections, type SettingSection } from './settingsModel';
+import { isAtDefaults, settingSections, type SettingSection } from './settingsModel';
 
 /** Derived once: the config shape does not change at runtime, only its values. */
 const SECTIONS = settingSections(DEFAULT_CONFIG);
@@ -18,7 +18,7 @@ interface SettingsPanelProps {
 /** Live controls for every config setting plus reset to defaults (spec D3). */
 export function SettingsPanel({ config, onChange }: SettingsPanelProps) {
   const resetButton = (
-    <button type="button" className="button button--small" disabled={config === DEFAULT_CONFIG} onClick={() => onChange(() => DEFAULT_CONFIG)}>
+    <button type="button" className="button button--small" disabled={isAtDefaults(config)} onClick={() => onChange(() => DEFAULT_CONFIG)}>
       Reset settings
     </button>
   );

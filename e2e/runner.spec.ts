@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import { SETTINGS_STORAGE_KEY } from '../demo/settings/localStorageSettings';
 import { nodeBox, renameByDoubleClick, textOf } from './demoPage';
 import { expect, test } from './fixtures';
 
@@ -27,6 +28,14 @@ test.describe('demo runner (spec §6a)', () => {
     await expect.poll(() => rootWidth(page)).toBeGreaterThan(before);
     await page.getByRole('button', { name: 'Reset settings' }).click();
     await expect.poll(() => rootWidth(page)).toBe(before);
+  });
+
+  test('GIVEN a changed setting WHEN the page is reloaded THEN the setting is kept (settings storage)', async ({ page }) => {
+    await page.getByTestId(ROOT_WIDTH_SETTING).fill(WIDER_ROOT_PX);
+    // Settings are written asynchronously; reloading before the write would test nothing.
+    await page.waitForFunction((key) => window.localStorage.getItem(key) !== null, SETTINGS_STORAGE_KEY);
+    await page.reload();
+    await expect(page.getByTestId(ROOT_WIDTH_SETTING)).toHaveValue(WIDER_ROOT_PX);
   });
 
   test('GIVEN a slow host WHEN a node is renamed THEN the change shows as waiting until the host saves it (D5)', async ({ page }) => {

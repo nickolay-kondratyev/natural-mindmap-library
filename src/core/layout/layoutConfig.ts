@@ -21,6 +21,16 @@ export interface BilateralLayoutConfig {
 
 export type LayoutConfig = BilateralLayoutConfig;
 
+/** A `Record` over the union, so a new layout `type` does not compile until it is listed. */
+const KNOWN_LAYOUT_TYPES: Readonly<Record<LayoutConfig['type'], true>> = { bilateral: true };
+
+/** Every layout `type`, for runtime checks and pickers (the union itself cannot be listed at runtime). */
+export const LAYOUT_TYPES = Object.keys(KNOWN_LAYOUT_TYPES) as readonly LayoutConfig['type'][];
+
+export function isLayoutType(value: unknown): value is LayoutConfig['type'] {
+  return typeof value === 'string' && Object.hasOwn(KNOWN_LAYOUT_TYPES, value);
+}
+
 export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
   type: 'bilateral',
   horizontalGap: 120,
