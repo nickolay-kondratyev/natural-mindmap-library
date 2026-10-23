@@ -38,7 +38,11 @@ export class LoadedFont {
   private readonly shapedByText = new Map<string, ShapedText>();
   private readonly outlineByGlyph = new Map<Glyph, EmOutline>();
 
-  constructor(private readonly font: Font) {
+  constructor(
+    private readonly font: Font,
+    /** The TTF bytes it was parsed from, e.g. to register the same font for DOM text (inline rename). */
+    readonly bytes: ArrayBuffer,
+  ) {
     const os2 = font.tables['os2'] as { sCapHeight?: number } | undefined;
     this.verticalCenterEm = verticalCenterEm({
       unitsPerEm: font.unitsPerEm,
@@ -50,7 +54,7 @@ export class LoadedFont {
 
   /** Throws when the bytes are not a font opentype.js can parse. */
   static parse(bytes: ArrayBuffer): LoadedFont {
-    return new LoadedFont(parse(bytes));
+    return new LoadedFont(parse(bytes), bytes);
   }
 
   shape(text: string): ShapedText {

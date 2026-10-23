@@ -2,7 +2,7 @@ import type { NodePositions } from '../layout/layoutTypes';
 import type { MindmapData, NodeId, NodeSize, Point } from '../model/node';
 import { buildTree } from '../model/tree';
 import { ellipseShape } from '../shape/nodeShape';
-import { HANDLE_GAP, HANDLE_RADIUS, nodeAt, nodeHandles, pointerTargetAt, type HitScene } from './hitTest';
+import { HANDLE_GAP, HANDLE_RADIUS, nodeAt, nodeHandles, pointerTargetAt, sameHandle, type HitScene } from './hitTest';
 
 const NODE_SIZE: NodeSize = { width: 100, height: 40 };
 const HALF_WIDTH = NODE_SIZE.width / 2;
@@ -96,5 +96,17 @@ describe('pointerTargetAt', () => {
   it('GIVEN the node is hovered WHEN the point is just outside its "+" THEN the "+" is not hit', () => {
     const justOutside = { x: plusOfLeft.x - HANDLE_RADIUS - 1, y: 0 };
     expect(pointerTargetAt(scene, justOutside, ellipseShape, 'l')).toEqual({ kind: 'empty' });
+  });
+});
+
+describe('sameHandle', () => {
+  const [left, right] = nodeHandles(scene, 'root');
+
+  it('WHEN the same button is rebuilt from the scene THEN it is the same handle', () => {
+    expect(sameHandle(nodeHandles(scene, 'root')[0] ?? null, left ?? null)).toBe(true);
+  });
+
+  it('WHEN the root "+" buttons of both sides are compared THEN they differ', () => {
+    expect(sameHandle(left ?? null, right ?? null)).toBe(false);
   });
 });

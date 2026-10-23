@@ -61,6 +61,13 @@ export function nodeAt(scene: HitScene, point: Point, shape: NodeShape, excluded
   return null;
 }
 
+/** Handles are rebuilt from the scene on every query, so compare them by what they do, not by identity. */
+export function sameHandle(a: NodeHandle | null, b: NodeHandle | null): boolean {
+  if (a === null || b === null) return a === b;
+  if (a.kind === 'add-child' && b.kind === 'add-child') return a.nodeId === b.nodeId && a.side === b.side;
+  return a.kind === b.kind && a.nodeId === b.nodeId;
+}
+
 export function handleAt(handles: readonly NodeHandle[], point: Point): NodeHandle | null {
   return handles.find((handle) => Math.hypot(point.x - handle.center.x, point.y - handle.center.y) <= HANDLE_RADIUS) ?? null;
 }
