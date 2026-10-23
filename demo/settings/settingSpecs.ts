@@ -68,6 +68,7 @@ export const SECTION_TITLES: Readonly<Record<keyof MindmapConfig, string>> = {
   branch: 'Branches',
   text: 'Text and fonts',
   layout: 'Layout',
+  interaction: 'Interaction',
 };
 
 /** Field labels (by config key) the camelCase key cannot produce on its own. */
@@ -78,6 +79,7 @@ export const FIELD_LABELS: Readonly<Record<string, string>> = {
   branchText: 'Branch label',
   textOutline: 'Label outline',
   text: 'Label',
+  confirmReparent: 'Ask before making a node a child',
 };
 
 /** Group headings (by dotted config path) where the last key alone would be unclear. */

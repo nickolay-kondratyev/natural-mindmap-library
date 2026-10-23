@@ -32,6 +32,12 @@ export interface MountOptions {
   readonly onViewChange?: (view: MindmapView) => void;
   /** Node drags (spec I2), once per drop; the position stays applied across later `setData` calls. */
   readonly onNodeReposition?: (event: NodeRepositionEvent) => void;
+  /**
+   * The user changed a setting from inside the map (e.g. "Don't ask again" in the reparent dialog). Gets the full
+   * settings; store them (e.g. `SettingsPersistence.save`) and pass them back as `config`, since a later
+   * `setConfig` replaces what the map applied itself.
+   */
+  readonly onConfigChange?: (config: MindmapConfig) => void;
 }
 
 /** Handle returned by `mountMindmap`; every setter coalesces into one repaint per frame (spec L8). */
@@ -108,6 +114,11 @@ class CanvasMount implements MindmapHandle {
       fonts: () => this.fonts.fonts(),
       requestRepaint: () => this.scheduler.request(),
       onNodeReposition: (event) => options.onNodeReposition?.(event),
+      // Same path as a host `setConfig`, so an in-map change can never skip what applying settings involves.
+      changeConfig: (config) => {
+        this.setConfig(config);
+        options.onConfigChange?.(config);
+      },
     });
     // Size the backing store from the canvas's CSS box right away so the first paint is correct even for
     // hosts that never call `resize` (the React wrapper does, via ResizeObserver).

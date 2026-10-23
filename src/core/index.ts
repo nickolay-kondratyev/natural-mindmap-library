@@ -10,6 +10,7 @@ export {
   type BranchTextFitConfig,
   type DeepPartial,
   type FontConfig,
+  type InteractionConfig,
   type MindmapConfig,
   type NodeSizeConfig,
   type PartialMindmapConfig,
@@ -61,4 +62,5 @@ export { CONFIRM_IMMEDIATELY, DEFAULT_EDIT_HANDLER, InMemoryHost, type HostSimul
 export type { NodeRepositionEvent } from './interaction/repositionEvent';
 export { HANDLE_GAP, HANDLE_RADIUS } from './interaction/hitTest';
 export { LABEL_EDITOR_ACCESSIBLE_NAME } from './interaction/inlineLabelEditor';
+export { REPARENT_DIALOG_LABELS } from './interaction/reparentDialog';
 export { DEFAULT_VIEW, MAX_ZOOM, MIN_ZOOM, type MindmapView } from './view/viewController';

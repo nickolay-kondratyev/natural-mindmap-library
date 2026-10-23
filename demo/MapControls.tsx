@@ -8,7 +8,7 @@ export function MapControls({ api, onResetMap }: { readonly api: () => MindmapAp
       <ul className="hint-list">
         <li>Hover a node: <kbd>+</kbd> adds a child, <kbd>×</kbd> deletes it.</li>
         <li>Double-click a node to rename it.</li>
-        <li>Drag a node onto another node to move it there; drop it on empty space to just reposition it.</li>
+        <li>Drag a node onto another node to make it a child there (you are asked first); drop it on empty space to just reposition it.</li>
         <li>Drag the background to pan, scroll to zoom.</li>
       </ul>
       <div className="button-row">

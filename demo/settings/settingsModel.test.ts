@@ -24,7 +24,11 @@ describe('GIVEN the settings derived from the default config', () => {
   });
 
   it('WHEN listing sections THEN they follow the top-level config keys', () => {
-    expect(settingSections(DEFAULT_CONFIG).map((section) => section.key)).toEqual(['theme', 'node', 'branch', 'text', 'layout']);
+    expect(settingSections(DEFAULT_CONFIG).map((section) => section.key)).toEqual(['theme', 'node', 'branch', 'text', 'layout', 'interaction']);
+  });
+
+  it('WHEN looking at the reparent confirmation THEN it is a toggle the user can turn back on', () => {
+    expect(field('interaction.confirmReparent').kind).toBe('toggle');
   });
 
   it('WHEN looking at the background THEN it is a color picker', () => {

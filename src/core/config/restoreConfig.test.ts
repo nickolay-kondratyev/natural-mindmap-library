@@ -76,4 +76,16 @@ describe('restoreConfig', () => {
   it('GIVEN an unknown layout type WHEN restoring THEN the default layout is used', () => {
     expect(restoreConfig({ layout: { type: 'radial', horizontalGap: 5 } }).layout).toEqual(DEFAULT_CONFIG.layout);
   });
+
+  it('GIVEN reparent confirmation turned off WHEN restoring THEN it stays off', () => {
+    expect(restoreConfig({ interaction: { confirmReparent: false } }).interaction.confirmReparent).toBe(false);
+  });
+
+  it('GIVEN settings stored before reparent confirmation existed WHEN restoring THEN confirmation is on', () => {
+    expect(restoreConfig({ branch: { taper: 0.5 } }).interaction.confirmReparent).toBe(true);
+  });
+
+  it('GIVEN reparent confirmation stored as a non-boolean WHEN restoring THEN confirmation is on', () => {
+    expect(restoreConfig({ interaction: { confirmReparent: 'no' } }).interaction.confirmReparent).toBe(true);
+  });
 });

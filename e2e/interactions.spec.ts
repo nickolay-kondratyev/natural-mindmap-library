@@ -1,4 +1,5 @@
-import { HANDLE_GAP, HANDLE_RADIUS, LABEL_EDITOR_ACCESSIBLE_NAME, type Point } from 'natural-mindmap';
+import type { Page } from '@playwright/test';
+import { HANDLE_GAP, HANDLE_RADIUS, LABEL_EDITOR_ACCESSIBLE_NAME, REPARENT_DIALOG_LABELS, type NodeId, type Point } from 'natural-mindmap';
 import { DEMO_REJECTION_REASON } from '../demo/host/demoHost';
 import { dragFromTo, emptyCanvasPoint, hostData, nodeBox, nodesAt, renameByDoubleClick, textOf, viewOf, viewZoom } from './demoPage';
 import { expect, test } from './fixtures';
@@ -12,6 +13,10 @@ const PAN_DELTA: Point = { x: 80, y: 50 };
 const WHEEL_ZOOM_IN_DELTA_Y = -200;
 /** `toBeCloseTo` digits: the drop must land within half a CSS px of the pointer. */
 const WITHIN_HALF_PX = 0;
+
+async function parentOf(page: Page, nodeId: NodeId): Promise<NodeId | null | undefined> {
+  return (await hostData(page)).find((node) => node.id === nodeId)?.parentId;
+}
 
 test.describe('canvas interactions (spec I1-I5)', () => {
   test('GIVEN the reference map WHEN the "+" of VIDA is clicked and a label typed THEN the host gets a new child of VIDA', async ({
@@ -36,12 +41,36 @@ test.describe('canvas interactions (spec I1-I5)', () => {
     await expect.poll(() => textOf(page, 'hamlet')).toBe('Ophelia');
   });
 
-  test('GIVEN the reference map WHEN Hamlet is dragged onto POESIA THEN the host moves Hamlet under POESIA', async ({ page }) => {
-    await page.goto('/');
-    const hamlet = await nodeBox(page, 'hamlet');
-    const poesia = await nodeBox(page, 'poesia');
-    await dragFromTo(page, hamlet.center, poesia.center);
-    await expect.poll(async () => (await hostData(page)).find((node) => node.id === 'hamlet')?.parentId).toBe('poesia');
+  test.describe('GIVEN Hamlet dragged onto POESIA (spec I3)', () => {
+    let hamletStart: Point;
+    test.beforeEach(async ({ page }) => {
+      await page.goto('/');
+      hamletStart = (await nodeBox(page, 'hamlet')).center;
+      const poesia = await nodeBox(page, 'poesia');
+      await dragFromTo(page, hamletStart, poesia.center);
+    });
+
+    test('WHEN the question is confirmed THEN the host moves Hamlet under POESIA', async ({ page }) => {
+      await page.getByRole('dialog', { name: 'Make "Hamlet" a child of "POESIA"?' }).getByRole('button', { name: REPARENT_DIALOG_LABELS.confirm }).click();
+      await expect.poll(() => parentOf(page, 'hamlet')).toBe('poesia');
+    });
+
+    test('WHEN the question is cancelled THEN Hamlet is drawn where it was before the drag', async ({ page }) => {
+      await page.getByRole('button', { name: REPARENT_DIALOG_LABELS.cancel }).click();
+      await expect.poll(async () => (await nodeBox(page, 'hamlet')).center.y).toBeCloseTo(hamletStart.y, WITHIN_HALF_PX);
+    });
+
+    test('WHEN the question is cancelled THEN the host keeps Hamlet under VIDA', async ({ page }) => {
+      await page.getByRole('button', { name: REPARENT_DIALOG_LABELS.cancel }).click();
+      await expect(page.getByRole('dialog')).toBeHidden();
+      expect(await parentOf(page, 'hamlet')).toBe('vida');
+    });
+
+    test('WHEN confirmed with "Don\'t ask again" THEN the setting to ask is off in the settings panel', async ({ page }) => {
+      await page.getByRole('checkbox', { name: REPARENT_DIALOG_LABELS.dontAskAgain }).check();
+      await page.getByRole('button', { name: REPARENT_DIALOG_LABELS.confirm }).click();
+      await expect(page.getByTestId('setting:interaction.confirmReparent')).not.toBeChecked();
+    });
   });
 
   test.describe('GIVEN VIDA dragged into empty space above it (spec I2)', () => {
