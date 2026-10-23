@@ -189,6 +189,7 @@ page and loads none of the runner code or CSS.
   the data and remounts `<Mindmap>` via `key` (clears dragged positions and the view); answers to requests sent
   before it are dropped. "Reset map" (D6) is `replaceMap(REFERENCE_DATA)`. A node click (I7) highlights that node
   (I8) and shows the readout from `host/nodeClickReadout.ts`.
+- "Load 200-node map" shows `syntheticTree(200)` (the bench's generator) through `replaceMap`, to feel performance.
 - `markdown/` (D7): "Paste Markdown" turns a note's headings into map data (`headingMapData`) and shows it through
   `replaceMap`. Throwaway glue that mirrors the plugin's mapping; the plugin uses Obsidian's heading list, and
   `src/` stays Markdown-free.

@@ -6,6 +6,7 @@ import { expect, test } from './fixtures';
 const ROOT_WIDTH_SETTING = 'setting:node.rootSize.width';
 const WIDER_ROOT_PX = '300';
 const HOST_DELAY_MS = '1000';
+const LARGE_MAP_NODES = 200;
 const PASTED_NOTE = ['Intro text is not a heading.', '# Trip to Rome', '## Flights', '```', '# not a heading', '```', '### Return'].join('\n');
 
 async function mapLabels(page: Page): Promise<string[]> {
@@ -55,6 +56,11 @@ test.describe('demo runner (spec §6a)', () => {
     await expect.poll(() => textOf(page, 'hamlet')).toBe('Ophelia');
     await page.getByRole('button', { name: 'Reset map' }).click();
     await expect.poll(() => textOf(page, 'hamlet')).toBe('Hamlet');
+  });
+
+  test('GIVEN the reference map WHEN "Load 200-node map" is clicked THEN the map has 200 nodes', async ({ page }) => {
+    await page.getByRole('button', { name: 'Load 200-node map' }).click();
+    await expect.poll(async () => (await hostData(page)).length).toBe(LARGE_MAP_NODES);
   });
 
   test('GIVEN pasted Markdown WHEN "Show headings as map" is clicked THEN the map shows its headings (D7)', async ({ page }) => {

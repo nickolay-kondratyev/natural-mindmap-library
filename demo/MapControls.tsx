@@ -1,15 +1,20 @@
 import type { MindmapApi } from 'natural-mindmap/react';
 import { PanelSection } from './PanelSection';
 
+/** Size of the "big map" button's map: what `npm run bench` calls a long note, to feel how it pans, zooms and edits. */
+export const LARGE_MAP_NODE_COUNT = 200;
+
 interface MapControlsProps {
   readonly api: () => MindmapApi | null;
   readonly onResetMap: () => void;
+  /** Shows a synthetic map of `LARGE_MAP_NODE_COUNT` nodes. */
+  readonly onLoadLargeMap: () => void;
   /** Readout of the last node click (`onNodeClick`), `null` before the first. */
   readonly lastNodeClick: string | null;
 }
 
-/** View buttons (spec I1, via the public `MindmapApi`), "Reset map" (D6), how to edit on the canvas (D4), the last node click. */
-export function MapControls({ api, onResetMap, lastNodeClick }: MapControlsProps) {
+/** View buttons (spec I1, via the public `MindmapApi`), "Reset map" (D6), a big map to check performance, how to edit on the canvas (D4), the last node click. */
+export function MapControls({ api, onResetMap, onLoadLargeMap, lastNodeClick }: MapControlsProps) {
   return (
     <PanelSection title="Map">
       <ul className="hint-list">
@@ -25,6 +30,11 @@ export function MapControls({ api, onResetMap, lastNodeClick }: MapControlsProps
         <button type="button" className="button" onClick={() => api()?.resetView()}>Fit to screen</button>
         <button type="button" className="button button--push-right" onClick={onResetMap} title="Back to the Shakespeare example; your edits and dragged positions are discarded.">
           Reset map
+        </button>
+      </div>
+      <div className="button-row">
+        <button type="button" className="button" onClick={onLoadLargeMap} title="A generated map to check performance; your edits and dragged positions are discarded.">
+          Load {LARGE_MAP_NODE_COUNT}-node map
         </button>
       </div>
       <p className="node-click" role="status" data-testid="node-click">

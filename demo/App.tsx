@@ -5,7 +5,9 @@ import { FontStatusBadge } from './FontStatusBadge';
 import { HostSimulationControls } from './host/HostSimulationControls';
 import { useDemoHost } from './host/demoHost';
 import { describeNodeClick } from './host/nodeClickReadout';
-import { MapControls } from './MapControls';
+// WHY test-support: the same generator as `npm run bench`, so the demo's big map is the benched map.
+import { syntheticTree } from '../test-support/syntheticTree';
+import { LARGE_MAP_NODE_COUNT, MapControls } from './MapControls';
 import { headingMapData } from './markdown/headingMap';
 import { PasteMarkdownControls } from './markdown/PasteMarkdownControls';
 import { LocalStorageSettings } from './settings/localStorageSettings';
@@ -57,6 +59,7 @@ export function App() {
         <MapControls
           api={() => apiRef.current}
           onResetMap={host.resetMap}
+          onLoadLargeMap={() => host.replaceMap(syntheticTree(LARGE_MAP_NODE_COUNT))}
           lastNodeClick={lastNodeClick === null ? null : describeNodeClick(lastNodeClick, host.data)}
         />
         <PasteMarkdownControls onShowHeadings={(markdown) => host.replaceMap(headingMapData(markdown))} />

@@ -5,7 +5,7 @@ export const VAULT_LIKE_FAN_OUT = 8;
 
 /**
  * A deterministic breadth-first tree of exactly `nodeCount` nodes with `fanOut` children per node (last level
- * partial), so benchmarks and tests size a map by node count alone. Labels vary in length like real headings.
+ * partial), so benchmarks, tests and the demo's big map size a map by node count alone. Labels vary in length like real headings.
  */
 export function syntheticTree(nodeCount: number, fanOut = VAULT_LIKE_FAN_OUT): MindmapData {
   if (nodeCount < 1) throw new Error(`nodeCount=[${nodeCount}] must be at least 1`);
