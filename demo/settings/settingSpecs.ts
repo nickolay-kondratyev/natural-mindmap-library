@@ -1,4 +1,4 @@
-import { LAYOUT_TYPES, type MindmapConfig } from 'natural-mindmap';
+import { LAYOUT_TYPES, SIDE_ORDERS, type MindmapConfig } from 'natural-mindmap';
 import type { LeafPathOf } from './configPath';
 
 /** Slider bounds for one numeric setting; `hint` is shown under the control when the label alone is not enough. */
@@ -59,6 +59,7 @@ export const NUMBER_RANGES: Readonly<Record<NumberSettingPath, NumberRange>> = {
 /** String settings that are a fixed set of options rather than free text. */
 export const STRING_CHOICES: Readonly<Partial<Record<LeafPathOf<MindmapConfig, string>, readonly string[]>>> = {
   'layout.type': LAYOUT_TYPES,
+  'layout.sideOrder': SIDE_ORDERS,
 };
 
 /** Section titles for the top-level config keys, in the user's words. */
@@ -75,6 +76,7 @@ export const SECTION_TITLES: Readonly<Record<keyof MindmapConfig, string>> = {
 export const FIELD_LABELS: Readonly<Record<string, string>> = {
   url: 'Font file (TTF URL)',
   type: 'Layout type',
+  sideOrder: 'First-level side order',
   nodeText: 'Node label',
   branchText: 'Branch label',
   textOutline: 'Label outline',

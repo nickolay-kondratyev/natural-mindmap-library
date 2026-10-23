@@ -18,7 +18,7 @@ export interface LayoutMindmapOptions {
 export function layoutMindmap(data: MindmapData, options: LayoutMindmapOptions = {}): NodePositions {
   const config = resolveConfig(options.config);
   const extensions = resolveExtensions(options.extensions);
-  const tree = buildTree(data);
+  const tree = buildTree(data, config.layout.sideOrder);
   return runLayoutPipeline(
     { tree, sizes: resolveNodeSizes(tree, config.node), config: config.layout, bowCurve: extensions.bowCurve },
     layoutStagesFor(extensions, config.layout),

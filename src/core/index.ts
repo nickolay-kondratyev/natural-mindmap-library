@@ -1,6 +1,6 @@
 // Public framework-free API. Everything a host (or the React wrapper) needs; nothing else is public.
 export type { MindmapData, MindmapNode, NodeId, NodeSize, Point, Side } from './model/node';
-export { buildTree, InvalidMindmapDataError, type MindmapTree } from './model/tree';
+export { buildTree, DEFAULT_SIDE_ORDER, InvalidMindmapDataError, isSideOrder, SIDE_ORDERS, type MindmapTree, type SideOrder } from './model/tree';
 export { REFERENCE_DATA } from './model/referenceData';
 
 export {

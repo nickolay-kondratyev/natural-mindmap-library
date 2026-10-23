@@ -51,6 +51,10 @@ describe('GIVEN the settings derived from the default config', () => {
     expect(field('layout.type')).toMatchObject({ kind: 'choice', options: ['bilateral'] });
   });
 
+  it('WHEN reading the side order field THEN it is a choice over the known side orders', () => {
+    expect(field('layout.sideOrder')).toMatchObject({ kind: 'choice', options: ['alternating', 'clockwise'] });
+  });
+
   it('WHEN looking at the depth scale THEN its slider allows children larger than parents (spec R4)', () => {
     const depthScale = field('node.depthScale');
     expect(depthScale.kind === 'number' && depthScale.range.max > 1).toBe(true);

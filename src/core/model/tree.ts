@@ -23,11 +23,32 @@ export interface MindmapTree {
 
 export class InvalidMindmapDataError extends Error {}
 
-export function buildTree(nodes: readonly MindmapNode[]): MindmapTree {
-  return new IndexedTree(nodes);
+/**
+ * How first-level nodes without an explicit `side` are split between the sides (spec R19), in data order:
+ * - `alternating`: right, left, right, ... (the default).
+ * - `clockwise`: the first half right, the second half left, so the map reads in document order (top to bottom on
+ *   the right, then bottom to top on the left; the layout reverses the left side's vertical order for this).
+ *   An odd count gives the right side the extra node.
+ */
+export type SideOrder = 'alternating' | 'clockwise';
+
+/** A `Record` over the union, so a new side order does not compile until it is listed. */
+const KNOWN_SIDE_ORDERS: Readonly<Record<SideOrder, true>> = { alternating: true, clockwise: true };
+
+/** Every side order, for runtime checks (restored settings) and pickers. */
+export const SIDE_ORDERS = Object.keys(KNOWN_SIDE_ORDERS) as readonly SideOrder[];
+
+export function isSideOrder(value: unknown): value is SideOrder {
+  return typeof value === 'string' && Object.hasOwn(KNOWN_SIDE_ORDERS, value);
 }
 
-/** First-level nodes without an explicit side alternate right, left, right, ... in data order (see alternatingSide). */
+export const DEFAULT_SIDE_ORDER: SideOrder = 'alternating';
+
+export function buildTree(nodes: readonly MindmapNode[], sideOrder: SideOrder = DEFAULT_SIDE_ORDER): MindmapTree {
+  return new IndexedTree(nodes, sideOrder);
+}
+
+/** `alternating` cycles through this in data order (see firstLevelSide). */
 const SIDE_ALTERNATION: readonly Side[] = ['right', 'left'];
 
 class IndexedTree implements MindmapTree {
@@ -39,7 +60,10 @@ class IndexedTree implements MindmapTree {
   private readonly depth = new Map<NodeId, number>();
   private readonly side = new Map<NodeId, Side>();
 
-  constructor(nodes: readonly MindmapNode[]) {
+  constructor(
+    nodes: readonly MindmapNode[],
+    private readonly sideOrder: SideOrder,
+  ) {
     this.nodes = nodes;
     for (const node of nodes) {
       if (this.byId.has(node.id)) throw new InvalidMindmapDataError(`Duplicate node id [${node.id}]`);
@@ -112,11 +136,12 @@ class IndexedTree implements MindmapTree {
       visited += 1;
       const depth = this.depth.get(id) as number;
       maxDepth = Math.max(maxDepth, depth);
-      let unsidedCount = 0;
+      const unsidedCount = this.childrenOf(id).filter((child) => child.side === undefined).length;
+      let unsidedIndex = 0;
       for (const child of this.childrenOf(id)) {
         this.depth.set(child.id, depth + 1);
         if (depth === 0) {
-          this.side.set(child.id, child.side ?? alternatingSide(unsidedCount++));
+          this.side.set(child.id, child.side ?? firstLevelSide(this.sideOrder, unsidedIndex++, unsidedCount));
         } else {
           this.side.set(child.id, this.side.get(id) as Side);
         }
@@ -128,7 +153,15 @@ class IndexedTree implements MindmapTree {
   }
 }
 
-/** Only first-level nodes without an explicit side take part in the alternation, so explicit sides never shift it. */
-function alternatingSide(unsidedIndex: number): Side {
-  return SIDE_ALTERNATION[unsidedIndex % SIDE_ALTERNATION.length] as Side;
+/**
+ * Side of the `unsidedIndex`-th first-level node without an explicit side, out of `unsidedCount`. Only unsided
+ * nodes take part, so explicit sides never shift the others.
+ */
+export function firstLevelSide(order: SideOrder, unsidedIndex: number, unsidedCount: number): Side {
+  switch (order) {
+    case 'alternating':
+      return SIDE_ALTERNATION[unsidedIndex % SIDE_ALTERNATION.length] as Side;
+    case 'clockwise':
+      return unsidedIndex < Math.ceil(unsidedCount / 2) ? 'right' : 'left';
+  }
 }

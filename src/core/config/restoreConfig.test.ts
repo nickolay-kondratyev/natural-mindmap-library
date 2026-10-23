@@ -10,6 +10,13 @@ const SAVED: MindmapConfig = {
 };
 
 describe('restoreConfig', () => {
+  it('GIVEN an unknown side order WHEN restoring THEN it falls back to the default side order', () => {
+    expect(restoreConfig({ layout: { sideOrder: 'spiral', horizontalGap: 50 } }).layout).toEqual({
+      ...DEFAULT_CONFIG.layout,
+      horizontalGap: 50,
+    });
+  });
+
   it('GIVEN nothing stored WHEN restoring THEN the defaults are returned', () => {
     expect(restoreConfig(undefined)).toBe(DEFAULT_CONFIG);
   });

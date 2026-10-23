@@ -1,3 +1,5 @@
+import { DEFAULT_SIDE_ORDER, type SideOrder } from '../model/tree';
+
 /**
  * Layout algorithms are selected by `type` (spec L4). Adding a variant extends this union and the
  * exhaustive `switch` in `pipeline.ts` fails to compile until handled.
@@ -5,8 +7,11 @@
  * NOTE for the second variant: `resolveConfig` deep-merges `layout` over the bilateral default, so a partial
  * `{ type: 'other' }` would inherit bilateral fields. Pick defaults per `type` in `resolveConfig` at that point.
  */
+
 export interface BilateralLayoutConfig {
   readonly type: 'bilateral';
+  /** How first-level nodes without an explicit `side` are split between the sides (spec R19); see `SideOrder`. */
+  readonly sideOrder: SideOrder;
   /** Horizontal gap between a parent's and a child's box edges, in px (room for the branch label, R14). */
   readonly horizontalGap: number;
   /** Vertical gap between the box edges of vertically adjacent nodes at the same depth, in px. */
@@ -33,6 +38,7 @@ export function isLayoutType(value: unknown): value is LayoutConfig['type'] {
 
 export const DEFAULT_LAYOUT_CONFIG: LayoutConfig = {
   type: 'bilateral',
+  sideOrder: DEFAULT_SIDE_ORDER,
   horizontalGap: 120,
   verticalGap: 40,
   bowOffset: 120,

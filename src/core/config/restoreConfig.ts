@@ -1,4 +1,5 @@
 import { DEFAULT_LAYOUT_CONFIG, isLayoutType } from '../layout/layoutConfig';
+import { isSideOrder } from '../model/tree';
 import { DEFAULT_CONFIG, type MindmapConfig } from './config';
 
 /**
@@ -15,7 +16,10 @@ export function restoreConfig(stored: unknown): MindmapConfig {
   const config = restoreValue(DEFAULT_CONFIG, stored) as MindmapConfig;
   // WHY whole-section fallback: `layout.type` selects which fields exist. With one variant, an unknown type means
   // the stored layout is not ours. A second variant needs per-type defaults here (see the NOTE in layoutConfig.ts).
-  return isLayoutType(config.layout.type) ? config : { ...config, layout: DEFAULT_LAYOUT_CONFIG };
+  if (!isLayoutType(config.layout.type)) return { ...config, layout: DEFAULT_LAYOUT_CONFIG };
+  // String unions are restored by type only above; an unknown value would reach the layout as a side order.
+  if (!isSideOrder(config.layout.sideOrder)) return { ...config, layout: { ...config.layout, sideOrder: DEFAULT_LAYOUT_CONFIG.sideOrder } };
+  return config;
 }
 
 function restoreValue(fallback: unknown, stored: unknown): unknown {

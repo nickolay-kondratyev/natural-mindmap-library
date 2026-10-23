@@ -4,12 +4,13 @@ import { REFERENCE_DATA } from '../model/referenceData';
 import { buildTree } from '../model/tree';
 import { resolveNodeSizes } from '../size/nodeSizeResolver';
 import { goldenRatioBowCurve } from './bowCurve';
+import type { LayoutConfig } from './layoutConfig';
 import type { LayoutContext, NodePositions } from './layoutTypes';
 import { tidyTreeStage } from './tidyTreeStage';
 
-function contextFor(data: MindmapData): LayoutContext {
-  const tree = buildTree(data);
-  return { tree, sizes: resolveNodeSizes(tree, DEFAULT_CONFIG.node), config: DEFAULT_CONFIG.layout, bowCurve: goldenRatioBowCurve };
+function contextFor(data: MindmapData, layout: LayoutConfig = DEFAULT_CONFIG.layout): LayoutContext {
+  const tree = buildTree(data, layout.sideOrder);
+  return { tree, sizes: resolveNodeSizes(tree, DEFAULT_CONFIG.node), config: layout, bowCurve: goldenRatioBowCurve };
 }
 
 function anyBoxesOverlap(positions: NodePositions, context: LayoutContext): boolean {
@@ -99,5 +100,29 @@ describe('GIVEN a node with a data size override', () => {
     const positions = tidyTreeStage.run(new Map(), context);
     const expectedDistance = (tall.height + context.sizes.get('b')!.height) / 2 + DEFAULT_CONFIG.layout.verticalGap;
     expect(positions.get('b')!.y - positions.get('a')!.y).toBeCloseTo(expectedDistance);
+  });
+});
+
+describe('GIVEN the clockwise side order and four unsided first-level nodes', () => {
+  const data: MindmapData = [
+    { id: 'root', parentId: null, text: 'ROOT' },
+    { id: 'a', parentId: 'root', text: 'A' },
+    { id: 'b', parentId: 'root', text: 'B' },
+    { id: 'c', parentId: 'root', text: 'C' },
+    { id: 'd', parentId: 'root', text: 'D' },
+  ];
+  const positions = tidyTreeStage.run(new Map(), contextFor(data, { ...DEFAULT_CONFIG.layout, sideOrder: 'clockwise' }));
+  const at = (id: NodeId) => positions.get(id)!;
+
+  it('WHEN laid out THEN the right side reads top to bottom in data order', () => {
+    expect(at('a').y).toBeLessThan(at('b').y);
+  });
+
+  it('WHEN laid out THEN the left side reads bottom to top in data order', () => {
+    expect(at('c').y).toBeGreaterThan(at('d').y);
+  });
+
+  it('WHEN laid out THEN the second half sits on the left', () => {
+    expect([at('c').x, at('d').x].every((x) => x < 0)).toBe(true);
   });
 });
