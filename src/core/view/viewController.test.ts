@@ -85,6 +85,13 @@ describe('ViewController', () => {
     expect(changes).toHaveLength(1);
   });
 
+  it('WHEN wheeling further at the zoom limit THEN no change is reported', () => {
+    controller.zoomAt(CURSOR, HUGE_FACTOR);
+    changes = [];
+    controller.zoomByWheel(CURSOR, WHEEL_UP_DELTA_Y);
+    expect(changes).toEqual([]);
+  });
+
   it('WHEN the host sets the view THEN it is not echoed back as a change', () => {
     controller.setView(DEFAULT_VIEW);
     expect(changes).toEqual([]);

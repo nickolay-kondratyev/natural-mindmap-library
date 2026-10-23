@@ -92,9 +92,15 @@ export class ViewController {
   }
 
   private update(view: MindmapView): void {
+    // E.g. wheeling further at a zoom limit: nothing moved, so nothing to report or repaint.
+    if (sameView(view, this.current)) return;
     this.current = view;
     this.onChange(view);
   }
+}
+
+function sameView(a: MindmapView, b: MindmapView): boolean {
+  return a.zoom === b.zoom && a.offset.x === b.offset.x && a.offset.y === b.offset.y;
 }
 
 function clampZoom(zoom: number): number {
