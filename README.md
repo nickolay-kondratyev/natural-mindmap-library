@@ -14,6 +14,11 @@ import { Mindmap } from 'natural-mindmap/react';
 
 Without React: `mountMindmap(canvas, { data })` returns a handle with `setData`, `setConfig`, `setExtensions`, `resize`, `destroy`.
 
+Structural edits (`move`, `add`, `rename`, `delete`) go to the host's `onEditRequest(request, currentData)`, which
+resolves with the host's updated data (rendered as-is) or rejects with a plain-language reason; without one, the
+in-memory host confirms immediately. Pan/zoom is library-local: `getView`/`setView`/`zoomIn`/`zoomOut`/`resetView`
+on the handle (or the `<Mindmap ref>`), user changes reported via `onViewChange`.
+
 ## Develop
 
 ```bash

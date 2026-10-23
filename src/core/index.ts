@@ -37,3 +37,18 @@ export { buildScene, type Scene } from './render/scene';
 export { drawScene, type Viewport } from './render/canvasRenderer';
 export { RepaintScheduler, windowFrameScheduler, type FrameScheduler } from './render/repaintScheduler';
 export { mountMindmap, type MindmapHandle, type MountOptions } from './mount';
+
+export type { AddEditRequest, DeleteEditRequest, EditHandler, EditRequest, MoveEditRequest, RenameEditRequest } from './edit/editRequest';
+export { applyEdit } from './edit/applyEdit';
+export { EDIT_PROBLEM, findEditProblem } from './edit/editValidation';
+export {
+  DEFAULT_REJECTION_REASON,
+  EDIT_BLOCKED_REASON,
+  PENDING_NODE_ID,
+  type EditPreview,
+  type EditStatus,
+  type EditSubmitResult,
+} from './edit/editSession';
+export { CONFIRM_IMMEDIATELY, DEFAULT_EDIT_HANDLER, InMemoryHost, type HostSimulation } from './edit/inMemoryHost';
+export type { NodeRepositionEvent } from './interaction/repositionEvent';
+export { DEFAULT_VIEW, MAX_ZOOM, MIN_ZOOM, type MindmapView } from './view/viewController';

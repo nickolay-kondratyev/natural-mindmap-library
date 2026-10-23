@@ -25,8 +25,9 @@ host data (flat MindmapNode[])      PartialMindmapConfig        Partial<MindmapE
                                 drawScene(ctx, scene, viewport)   <- RepaintScheduler (1 paint / frame)
 ```
 
-`mountMindmap(canvas, options)` owns the state (data, config, extensions, viewport) and the scheduler;
-every setter just requests a repaint (spec L8).
+`mountMindmap(canvas, options)` owns the state (edit session, config, extensions, viewport, view) and the
+scheduler; every setter just requests a repaint (spec L8). The painted data is `EditSession.displayData`
+(pending preview, else host-confirmed data) and `drawScene` applies the `ViewController` pan/zoom.
 
 ## Modules (`src/core/`)
 
@@ -41,6 +42,9 @@ every setter just requests a repaint (spec L8).
 | `color/` | Color strategy seam (R10/R11) | `ColorStrategy.resolve(tree, theme) -> NodeColorMap`, `parentDerivedColorStrategy` |
 | `render/` | Scene assembly, canvas drawing, frame coalescing | `buildScene`, `drawScene`, `RepaintScheduler` |
 | `extensions.ts` | Bundle of code-level extension points | `MindmapExtensions`, `DEFAULT_EXTENSIONS` |
+| `edit/` | Request -> confirm protocol (I5), default host (I6) | `EditRequest`, `EditHandler`, `EditSession`, `findEditProblem`, `applyEdit`, `InMemoryHost` |
+| `view/` | Library-local pan/zoom (I1) | `MindmapView`, `ViewController` |
+| `interaction/` | Interaction event types (I2) | `NodeRepositionEvent` |
 | `mount.ts` | Imperative entry point | `mountMindmap` -> `MindmapHandle` |
 
 ## Config vs extensions
@@ -71,12 +75,23 @@ every setter just requests a repaint (spec L8).
 - **Node shape** (R2): `draw` paints fill + outline; `contains` is for hit testing; `rimPoint` for geometry.
 - **Color strategy** (R10/R11): returns fill + outline per node id; root colors come from `theme.color.root`.
 - **Node sizes** (R4): always read from `Scene.sizes` / `resolveNodeSizes`; never compute sizes elsewhere.
+- **Edit protocol** (I5): `EditHandler(request, currentData) -> Promise<MindmapData>`. Resolve with the
+  host's updated data (rendered as-is; the library never applies the change to confirmed data, L2); reject
+  with an `Error` whose message is a plain-language reason. `EditSession.submit` refuses up front (no request
+  sent) when `findEditProblem` objects (self/descendant drop, unknown node, delete root) or another edit is
+  pending; view actions stay available. While pending, `preview` is derived from the current confirmed data
+  (`add` uses `PENDING_NODE_ID`; `delete` keeps the subtree visible); `rejected` keeps the request for retry.
+  No library-side timeout. `applyEdit` is the pure apply used by `InMemoryHost` and the preview.
+- **View** (I1): `screen = viewportCenter + offset + zoom * scene` (CSS px). `ViewController` reports
+  user-driven changes (pan, cursor-anchored zoom, API zoom/reset) via `onViewChange`; host `setView` is not echoed.
 
 ## Placeholders owned by follow-up tickets
 
 - `render/scene.ts` `straightBranches`: straight segments -> curved tapered geometry.
 - `render/canvasRenderer.ts`: stroked lines and `fillText` labels -> filled limbs and glyph outlines.
-- `mount.ts`: no interaction/edit protocol/view model yet; those add fields to `MountOptions`/`MindmapHandle`.
+- `mount.ts`: no pointer/DOM wiring yet (pan drag, wheel, node drag/drop, "+" button, inline rename);
+  the interaction ticket drives `ViewController` / `EditSession` from it, emits `onNodeReposition`, and
+  shows `EditSession.preview` as pending (dimmed) plus the rejection reason.
 
 ## Testing
 

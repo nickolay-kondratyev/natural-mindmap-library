@@ -2,6 +2,7 @@ import type { MindmapConfig } from '../config/config';
 import type { MindmapExtensions } from '../extensions';
 import type { Point } from '../model/node';
 import type { Scene } from './scene';
+import type { MindmapView } from '../view/viewController';
 
 /** Canvas size in CSS pixels plus the device pixel ratio the backing store was scaled by. */
 export interface Viewport {
@@ -25,6 +26,7 @@ export function drawScene(
   config: MindmapConfig,
   extensions: MindmapExtensions,
   viewport: Viewport,
+  view: MindmapView,
 ): void {
   ctx.setTransform(viewport.devicePixelRatio, 0, 0, viewport.devicePixelRatio, 0, 0);
   ctx.fillStyle = config.theme.color.background;
@@ -32,6 +34,9 @@ export function drawScene(
 
   // Scene coordinates put the root at (0,0); center it in the viewport.
   ctx.translate(viewport.width / 2, viewport.height / 2);
+  // Pan/zoom (spec I1): same mapping as ViewController.sceneToScreen.
+  ctx.translate(view.offset.x, view.offset.y);
+  ctx.scale(view.zoom, view.zoom);
 
   for (const branch of scene.branches) {
     const color = scene.colors.get(branch.childId);
