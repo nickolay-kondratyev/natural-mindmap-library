@@ -2,6 +2,7 @@ import type { MindmapData, NodeId } from '../model/node';
 import { applyEdit } from './applyEdit';
 import type { EditHandler, EditRequest } from './editRequest';
 import { findEditProblem } from './editValidation';
+import { rememberLast } from '../memo/rememberLast';
 
 /**
  * Where the request -> confirm protocol stands (spec I5). `rejected` keeps the request so typed input
@@ -62,22 +63,27 @@ export class EditSession {
   /**
    * Derived from the current confirmed data so host updates during a pending edit still show. `null` when
    * idle, or when the host's data no longer fits the request (e.g. the node vanished meanwhile).
+   * Remembered per (data, status) so repaints of one pending edit see the same preview object (scene cache).
    */
   get preview(): EditPreview | null {
-    if (this.currentStatus.kind !== 'pending') return null;
-    const request = this.currentStatus.request;
-    if (findEditProblem(this.hostData, request) !== null) return null;
+    return this.previewOf(this.hostData, this.currentStatus);
+  }
+
+  private readonly previewOf = rememberLast((data: MindmapData, status: EditStatus): EditPreview | null => {
+    if (status.kind !== 'pending') return null;
+    const request = status.request;
+    if (findEditProblem(data, request) !== null) return null;
     switch (request.type) {
       case 'add':
-        return { data: applyEdit(this.hostData, request, PENDING_NODE_ID), nodeId: PENDING_NODE_ID };
+        return { data: applyEdit(data, request, PENDING_NODE_ID), nodeId: PENDING_NODE_ID };
       case 'delete':
         // Keep the doomed subtree visible (shown as pending) instead of removing it before the host confirms.
-        return { data: this.hostData, nodeId: request.nodeId };
+        return { data, nodeId: request.nodeId };
       case 'move':
       case 'rename':
-        return { data: applyEdit(this.hostData, request, PENDING_NODE_ID), nodeId: request.nodeId };
+        return { data: applyEdit(data, request, PENDING_NODE_ID), nodeId: request.nodeId };
     }
-  }
+  });
 
   /** What to render: the pending preview if any, else the confirmed data. */
   get displayData(): MindmapData {

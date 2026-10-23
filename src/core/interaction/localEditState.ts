@@ -4,6 +4,7 @@ import { EDIT_BLOCKED_REASON, type EditSession, type EditStatus } from '../edit/
 import { findEditProblem } from '../edit/editValidation';
 import type { NodePositions } from '../layout/layoutTypes';
 import { withNodeDropped, withoutSubtree, type PositionOverrides } from '../layout/positionOverrides';
+import { rememberLast } from '../memo/rememberLast';
 import type { MindmapData, NodeId, Point, Side } from '../model/node';
 import { buildTree, type MindmapTree } from '../model/tree';
 import type { NodeRepositionEvent } from './repositionEvent';
@@ -43,21 +44,30 @@ export class LocalEditState {
     this.previousStatus = edits.status;
   }
 
-  /** Pending preview, else the draft child (if its parent still exists), else the confirmed data. */
+  /**
+   * Pending preview, else the draft child (if its parent still exists), else the confirmed data.
+   * Derived values are remembered by input identity so unchanged state repaints with the same object (scene cache).
+   */
   displayData(): MindmapData {
     const { edits, draft } = this;
     if (draft === null || edits.status.kind === 'pending' || findEditProblem(edits.confirmedData, draft) !== null) {
       return edits.displayData;
     }
-    return applyEdit(edits.confirmedData, draft, DRAFT_NODE_ID);
+    return this.withDraft(edits.confirmedData, draft);
   }
+
+  private readonly withDraft = rememberLast((data: MindmapData, draft: AddEditRequest) => applyEdit(data, draft, DRAFT_NODE_ID));
 
   /** While a reparent is pending, the moved subtree previews at its new parent's layout spot (see `onEditStatusChange`). */
   effectiveOverrides(): PositionOverrides {
     const { status, confirmedData } = this.edits;
     if (status.kind !== 'pending' || status.request.type !== 'move') return this.overrides;
-    return withoutSubtree(this.overrides, buildTree(confirmedData), status.request.nodeId);
+    return this.withoutPendingMove(this.overrides, confirmedData, status.request.nodeId);
   }
+
+  private readonly withoutPendingMove = rememberLast((overrides: PositionOverrides, data: MindmapData, movedId: NodeId) =>
+    withoutSubtree(overrides, buildTree(data), movedId),
+  );
 
   /** Why an editor must not open now, or `null`: not while an edit is pending (spec I5.2), so no typing is lost. */
   editorBlockedReason(): string | null {

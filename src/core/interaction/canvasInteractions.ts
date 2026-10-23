@@ -10,7 +10,8 @@ import { buildTree, type MindmapTree } from '../model/tree';
 import type { Viewport } from '../render/canvasRenderer';
 import { drawInteractionOverlay } from '../render/interactionOverlay';
 import { nodeLabelInk } from '../render/labelRenderer';
-import { buildScene, type Scene } from '../render/scene';
+import type { Scene } from '../render/scene';
+import { cachedSceneBuilder } from '../render/sceneCache';
 import type { NodeBox } from '../shape/nodeShape';
 import { CssFontFaces } from '../text/cssFontFaces';
 import type { LabelFonts } from '../text/labelFontLoader';
@@ -79,6 +80,7 @@ export class CanvasInteractions {
   private readonly removeListeners: (() => void)[] = [];
   /** Last painted scene: what the user sees, so it is what pointer events hit-test against. */
   private painted: Scene | null = null;
+  private readonly buildScene = cachedSceneBuilder();
   private hoveredNodeId: NodeId | null = null;
   private hoveredHandle: NodeHandle | null = null;
   private drag: NodeDrag | null = null;
@@ -111,15 +113,16 @@ export class CanvasInteractions {
   }
 
   /**
-   * The scene to paint now. Ceiling: rebuilt from scratch each paint (also every frame of the busy animation);
-   * fine for hand-sized maps, cache by input identity if large maps stutter.
+   * The scene to paint now. Rebuilt only when data, config, extensions or position overrides are new objects
+   * (`cachedSceneBuilder`); hover, pan, zoom and the busy animation reuse the last scene. Ceiling: the drag
+   * preview re-routes every branch on each pointer move (over a frozen base scene), fine up to ~1,000 nodes.
    */
   sceneToPaint(): Scene {
     const config = this.host.config();
     const drag = this.shownDrag();
     this.painted =
       drag === null
-        ? buildScene(this.local.displayData(), config, this.host.extensions(), this.local.effectiveOverrides())
+        ? this.buildScene(this.local.displayData(), config, this.host.extensions(), this.local.effectiveOverrides())
         : draggedScene(drag, config.branch);
     return this.painted;
   }

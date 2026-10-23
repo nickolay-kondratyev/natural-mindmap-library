@@ -76,6 +76,10 @@ describe('EditSession', () => {
       expect(session.preview?.nodeId).toBe('a');
     });
 
+    it('WHEN reading the display data twice (two busy-animation frames) THEN it is the same object, so the scene cache holds', () => {
+      expect(session.displayData).toBe(session.displayData);
+    });
+
     it('WHEN reading the confirmed data THEN it is still the host data', () => {
       expect(session.confirmedData).toBe(DATA);
     });
