@@ -80,6 +80,10 @@ export const FIELD_LABELS: Readonly<Record<string, string>> = {
   textOutline: 'Label outline',
   text: 'Label',
   confirmReparent: 'Ask before making a node a child',
+  allowAdd: 'Allow adding nodes (hover "+")',
+  allowRename: 'Allow renaming (double-click)',
+  allowDelete: 'Allow deleting (no delete control yet)',
+  highlight: 'Highlighted node ring',
 };
 
 /** Group headings (by dotted config path) where the last key alone would be unclear. */

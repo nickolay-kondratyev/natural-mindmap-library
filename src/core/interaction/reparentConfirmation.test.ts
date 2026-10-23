@@ -9,7 +9,7 @@ const DATA: MindmapData = [
   { id: 'b', parentId: 'root', text: 'POESIA' },
 ];
 const MOVE_A_UNDER_B: MoveEditRequest = { type: 'move', nodeId: 'a', newParentId: 'b' };
-const CONFIRMATION_OFF: MindmapConfig = { ...DEFAULT_CONFIG, interaction: { confirmReparent: false } };
+const CONFIRMATION_OFF: MindmapConfig = { ...DEFAULT_CONFIG, interaction: { ...DEFAULT_CONFIG.interaction, confirmReparent: false } };
 
 /** Records what the confirmation sends and which settings it changes. */
 class RecordingHost implements ReparentConfirmationHost {

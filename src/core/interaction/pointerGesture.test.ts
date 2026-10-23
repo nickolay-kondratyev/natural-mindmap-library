@@ -1,6 +1,6 @@
 import type { Point } from '../model/node';
 import type { NodeHandle } from './hitTest';
-import { DRAG_THRESHOLD_PX, exceedsDragThreshold, PointerGesture, type PressTarget } from './pointerGesture';
+import { clickedNodeId, DRAG_THRESHOLD_PX, exceedsDragThreshold, PointerGesture, type PressTarget } from './pointerGesture';
 
 const START: Point = { x: 100, y: 100 };
 const WITHIN: Point = { x: START.x + DRAG_THRESHOLD_PX - 1, y: START.y };
@@ -8,6 +8,7 @@ const BEYOND: Point = { x: START.x + DRAG_THRESHOLD_PX + 6, y: START.y + 2 };
 const FURTHER: Point = { x: BEYOND.x + 5, y: BEYOND.y + 7 };
 const NODE: PressTarget = { kind: 'node', nodeId: 'a' };
 const CANVAS: PressTarget = { kind: 'canvas' };
+const ROOT: PressTarget = { kind: 'fixed-node', nodeId: 'root' };
 const HANDLE: NodeHandle = { kind: 'add-child', nodeId: 'a', side: 'right', center: START };
 const BUTTON: PressTarget = { kind: 'handle', handle: HANDLE };
 
@@ -78,6 +79,18 @@ describe('PointerGesture', () => {
     });
   });
 
+  describe('GIVEN a press on a node that cannot move', () => {
+    beforeEach(() => gesture.press(START, ROOT));
+
+    it('WHEN released in place THEN it is a click on the node', () => {
+      expect(gesture.release(START)).toEqual({ kind: 'click', target: ROOT });
+    });
+
+    it('WHEN moving past the threshold THEN it pans instead of dragging the node', () => {
+      expect(gesture.move(BEYOND).kind).toBe('pan');
+    });
+  });
+
   describe('GIVEN a press on a hover button', () => {
     beforeEach(() => gesture.press(START, BUTTON));
 
@@ -98,5 +111,23 @@ describe('PointerGesture', () => {
   it('GIVEN a press WHEN released past the threshold without a move event THEN it is not a click', () => {
     gesture.press(START, NODE);
     expect(gesture.release(BEYOND)).toEqual({ kind: 'none' });
+  });
+});
+
+describe('clickedNodeId', () => {
+  it('GIVEN a click on a movable node THEN it reports that node', () => {
+    expect(clickedNodeId(NODE)).toBe('a');
+  });
+
+  it('GIVEN a click on a node that cannot move THEN it reports that node', () => {
+    expect(clickedNodeId(ROOT)).toBe('root');
+  });
+
+  it('GIVEN a click on a hover button THEN it reports no node', () => {
+    expect(clickedNodeId(BUTTON)).toBeNull();
+  });
+
+  it('GIVEN a click on bare canvas THEN it reports no node', () => {
+    expect(clickedNodeId(CANVAS)).toBeNull();
   });
 });

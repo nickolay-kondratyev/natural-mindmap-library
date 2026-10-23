@@ -85,6 +85,11 @@ describe('restoreConfig', () => {
     expect(restoreConfig({ branch: { taper: 0.5 } }).interaction.confirmReparent).toBe(true);
   });
 
+  it('GIVEN a move-only map (add, rename and delete off) WHEN restoring THEN all three stay off', () => {
+    const moveOnly = { ...DEFAULT_CONFIG.interaction, allowAdd: false, allowRename: false, allowDelete: false };
+    expect(restoreConfig({ interaction: moveOnly }).interaction).toEqual(moveOnly);
+  });
+
   it('GIVEN reparent confirmation stored as a non-boolean WHEN restoring THEN confirmation is on', () => {
     expect(restoreConfig({ interaction: { confirmReparent: 'no' } }).interaction.confirmReparent).toBe(true);
   });

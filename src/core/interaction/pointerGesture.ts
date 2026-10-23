@@ -17,6 +17,8 @@ export type PressTarget =
   | { readonly kind: 'canvas' }
   /** A movable node: dragging moves it with its subtree (spec I2/I3). */
   | { readonly kind: 'node'; readonly nodeId: NodeId }
+  /** A node that cannot move (the root, spec R23): dragging pans like empty canvas, but releasing in place clicks it. */
+  | { readonly kind: 'fixed-node'; readonly nodeId: NodeId }
   /** A hover button: it can only be clicked. */
   | { readonly kind: 'handle'; readonly handle: NodeHandle };
 
@@ -99,6 +101,7 @@ export class PointerGesture {
         this.state = { kind: 'abandoned' };
         return NO_STEP;
       case 'canvas':
+      case 'fixed-node':
         this.state = { kind: 'panning', last: point };
         // Include the distance travelled inside the threshold so the view does not lag behind the pointer.
         return { kind: 'pan', delta: offsetOf(start, point) };
@@ -106,6 +109,22 @@ export class PointerGesture {
         this.state = { kind: 'dragging', nodeId: target.nodeId, start };
         return { kind: 'drag', nodeId: target.nodeId, offset: offsetOf(start, point) };
     }
+  }
+}
+
+/**
+ * Node a click reports to the host (`onNodeClick`), if any. Hover buttons and bare canvas (including a node's hover
+ * area around its "+") are not node clicks. Every click is reported at once, so a double-click is two clicks (plus
+ * a rename when renaming is on); see docs/architecture.md "Pointer interactions".
+ */
+export function clickedNodeId(target: PressTarget): NodeId | null {
+  switch (target.kind) {
+    case 'node':
+    case 'fixed-node':
+      return target.nodeId;
+    case 'handle':
+    case 'canvas':
+      return null;
   }
 }
 

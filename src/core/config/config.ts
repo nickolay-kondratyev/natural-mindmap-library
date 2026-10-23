@@ -60,10 +60,20 @@ export interface TextConfig {
   readonly branchFit: BranchTextFitConfig;
 }
 
-/** How the map behaves under the user's hands (spec I1-I5). */
+/**
+ * How the map behaves under the user's hands (spec I1-I5). The `allow*` switches turn off the map's own edit
+ * controls; all three off gives a move-only map (dragging onto a node still moves it). Requests the host sends
+ * itself (`requestEdit`) are never gated by them.
+ */
 export interface InteractionConfig {
   /** Ask before a node dropped onto another node becomes its child (spec I3); the dialog's "Don't ask again" turns it off. */
   readonly confirmReparent: boolean;
+  /** The hover "+" that adds a child (spec I4). */
+  readonly allowAdd: boolean;
+  /** Double-click opens the inline rename editor (spec I4). */
+  readonly allowRename: boolean;
+  /** Reserved: the map has no delete control today (hosts send `delete` from their own UI), so this has no effect yet. */
+  readonly allowDelete: boolean;
 }
 
 /**
@@ -122,7 +132,7 @@ export const DEFAULT_CONFIG: MindmapConfig = {
     branchFit: { paddingPx: 8, minPaddingPx: 2, minLetterSpacingEm: -0.05, minFontScale: 0.6 },
   },
   layout: DEFAULT_LAYOUT_CONFIG,
-  interaction: { confirmReparent: true },
+  interaction: { confirmReparent: true, allowAdd: true, allowRename: true, allowDelete: true },
 };
 
 /** Merges a partial user config over the defaults (deep for objects, replace for arrays and primitives). */

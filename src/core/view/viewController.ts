@@ -77,6 +77,13 @@ export class ViewController {
     this.zoomAt(this.viewportCenter, 1 / ZOOM_STEP_FACTOR);
   }
 
+  /** Pans so `scenePoint` sits at the viewport center, keeping the zoom (e.g. to follow the host's editor cursor). */
+  centerOn(scenePoint: Point): void {
+    const { zoom } = this.current;
+    // From `screen = viewportCenter + offset + zoom * scene` with `screen = viewportCenter`.
+    this.update({ offset: { x: -zoom * scenePoint.x, y: -zoom * scenePoint.y }, zoom });
+  }
+
   /**
    * Extent of the painted map, refreshed on every paint so `reset` fits what is on screen. The first call with
    * a sized viewport also performs the initial fit; a 0x0 viewport (hidden canvas) defers it to a later paint.
