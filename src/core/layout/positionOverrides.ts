@@ -8,7 +8,8 @@ import type { NodePositions } from './layoutTypes';
 /**
  * User-chosen node centres (spec I2), keyed by node id, in scene coordinates. Library-local layout state: they
  * survive data updates (ids that no longer exist are ignored) and are reported to the host as events, never
- * written into host data.
+ * written into host data. Iteration order is drop order (oldest first, kept by `withNodeDropped`): when two
+ * user-placed nodes overlap, the later drop stays and the earlier one is pushed clear.
  */
 export type PositionOverrides = ReadonlyMap<NodeId, Point>;
 
@@ -51,6 +52,8 @@ export function withNodeDropped(overrides: PositionOverrides, tree: MindmapTree,
     const position = result.get(id);
     if (position !== undefined) result.set(id, { x: position.x + delta.x, y: position.y + delta.y });
   }
+  // Delete first: `Map.set` on an existing key keeps its old slot, but this is now the latest drop.
+  result.delete(drop.nodeId);
   result.set(drop.nodeId, drop.to);
   return result;
 }
@@ -62,9 +65,10 @@ export function withoutSubtree(overrides: PositionOverrides, tree: MindmapTree, 
 }
 
 /**
- * Places every overridden node at its chosen centre, carrying its subtree along (spec I2), then pushes the other
- * nodes apart (R23) with the overridden subtrees pinned so they stay exactly where the user put them. Parents are
- * placed before children, so a child with its own override still ends up at it.
+ * Places every overridden node at its chosen centre, carrying its subtree along (spec I2), then pushes nodes apart
+ * (R23) with the overridden subtrees pinned in drop order: laid-out nodes always yield to them, and where two
+ * user-placed subtrees overlap the earlier drop yields, so the latest drop stays exactly where the user put it.
+ * Parents are placed before children, so a child with its own override still ends up at it.
  *
  * Without overrides the input is returned as-is (no extra collision pass), so untouched maps render exactly as
  * the layout pipeline produced them.
@@ -75,12 +79,14 @@ export function applyPositionOverrides(positions: NodePositions, input: Position
   if (known.length === 0) return positions;
 
   let result = positions;
-  const pinnedIds = new Set<NodeId>();
   for (const node of [...known].sort((a, b) => tree.depthOf(a.id) - tree.depthOf(b.id))) {
     const target = overrides.get(node.id) as Point;
     const current = result.get(node.id) as Point;
     result = moveSubtree(result, tree, node.id, { x: target.x - current.x, y: target.y - current.y });
-    for (const id of subtreeIds(tree, node.id)) pinnedIds.add(id);
   }
-  return resolveCollisions(result, { tree, sizes: input.sizes, padding: input.padding, pinnedIds });
+  const knownIds = new Set(known.map((node) => node.id));
+  const pinnedGroups = [...overrides.keys()]
+    .filter((id) => knownIds.has(id))
+    .map((id) => new Set<NodeId>(subtreeIds(tree, id)));
+  return resolveCollisions(result, { tree, sizes: input.sizes, padding: input.padding, pinnedGroups });
 }

@@ -69,8 +69,9 @@ highlight / pending veil on top.
   `root-bow` (shifts each first-level subtree outward by `bowCurve`), `hand-drawn-jitter` (offset hashed from
   the node id, so deterministic and stable under edits), `collision` (push-apart, root pinned).
   `layoutMindmap(data, { config, extensions })` is the standalone data-in -> positions-out entry (L7).
-- **Collision** (R23/I2): `resolveCollisions(positions, { tree, sizes, padding, pinnedIds })` is reusable outside
-  the pipeline (`applyPositionOverrides` pins user-dragged subtrees); the root is always pinned.
+- **Collision** (R23/I2): `resolveCollisions(positions, { tree, sizes, padding, pinnedGroups })` is reusable outside
+  the pipeline. `applyPositionOverrides` pins user-dragged subtrees as groups in drop order: laid-out nodes yield to
+  them, and of two overlapping dragged subtrees the earlier drop yields. The root never moves.
 - **Bow curve** (R21): `BowCurve(normalizedVerticalDistance 0..1) -> normalizedHorizontalOffset 0..1`.
 - **Branch path** (R5/R12): arc-length parametrised so branch rendering (tapered outline) and
   text-along-curve (glyph placement) agree. Branches run center to center (R9); use
@@ -78,7 +79,8 @@ highlight / pending veil on top.
 - **Branch geometry** (R5-R9): `buildBranches({ tree, positions, sizes, config.branch })` is pure. Each limb is a
   cubic that leaves the parent horizontally through a fork point shared by all siblings (soft Y), settles
   horizontally into the child, then `branchRouting.ts` nudges its inner control points vertically away from
-  unrelated node boxes and from overlapping limbs (simple separation, not physics). `Branch.width` is the
+  unrelated node boxes and from overlapping limbs (simple separation, not physics; curve interior only, since
+  clearing an obstacle near an end would bulge the whole limb). `Branch.width` is the
   start/end thickness (`rootWidth * widthPerLevel^(level-1)`, end = `taper` of start); `taperedOutline(branch,
   asymmetry)` turns it into the polygon the renderer fills, with a hash-of-child-id-seeded one-sided bulge (R7).
 - **Node shape** (R2): `draw` paints fill + outline; `contains` is for hit testing; `rimPoint` for geometry.
