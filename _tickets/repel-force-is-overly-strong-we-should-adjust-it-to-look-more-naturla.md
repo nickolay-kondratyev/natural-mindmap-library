@@ -1,15 +1,15 @@
 ---
+closed_iso: 2026-10-23T16:40:48Z
 id: nid_5plujgmcff5uhtr5xx0xcu5dl_e
 title: "repel force is overly strong we should adjust it to look more naturla."
-status: in_progress
+status: closed
 deps: []
 links: []
 created_iso: 2026-10-23T16:20:00Z
-status_updated_iso: 2026-10-23T16:30:39Z
+status_updated_iso: 2026-10-23T16:40:48Z
 type: task
 priority: 3
 assignee: nickolaykondratyev
-pwd: /home/nickolaykondratyev/git_repos/nickolay-kondratyev_natural-mindmap-library/.worktree/t-5plujgmc
 tags: []
 ---
 
