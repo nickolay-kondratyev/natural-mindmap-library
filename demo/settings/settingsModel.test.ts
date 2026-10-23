@@ -1,6 +1,6 @@
 import { DEFAULT_CONFIG, type MindmapConfig } from 'natural-mindmap';
-import { valueAt } from './configPath';
-import { formatNumber, humanize, settingSections, type SettingField } from './settingsModel';
+import { valueAt, withValueAt } from './configPath';
+import { formatNumber, humanize, isAtDefaults, settingSections, type SettingField } from './settingsModel';
 
 function allFields(config: MindmapConfig = DEFAULT_CONFIG): SettingField[] {
   return settingSections(config).flatMap((section) => section.groups.flatMap((group) => group.fields));
@@ -96,5 +96,17 @@ describe('GIVEN a slider step', () => {
 
   it('WHEN the step is whole THEN no decimals are shown', () => {
     expect(formatNumber(120, 1)).toBe('120');
+  });
+});
+
+describe('GIVEN settings equal to the defaults but not the same object (e.g. loaded from storage)', () => {
+  it('WHEN checking THEN they are at the defaults', () => {
+    expect(isAtDefaults(structuredClone(DEFAULT_CONFIG))).toBe(true);
+  });
+});
+
+describe('GIVEN settings with one palette color changed', () => {
+  it('WHEN checking THEN they are not at the defaults', () => {
+    expect(isAtDefaults(withValueAt(DEFAULT_CONFIG, ['theme', 'color', 'palette', 2, 'fill'], '#000000'))).toBe(false);
   });
 });

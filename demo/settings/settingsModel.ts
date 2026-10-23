@@ -1,5 +1,5 @@
-import type { MindmapConfig } from 'natural-mindmap';
-import { dottedPath, type ConfigPath } from './configPath';
+import { DEFAULT_CONFIG, type MindmapConfig } from 'natural-mindmap';
+import { dottedPath, valueAt, type ConfigPath } from './configPath';
 import { FIELD_LABELS, GROUP_TITLES, NUMBER_RANGES, SECTION_TITLES, STRING_CHOICES, type NumberRange, type NumberSettingPath } from './settingSpecs';
 
 interface FieldBase {
@@ -43,6 +43,17 @@ export function settingSections(config: MindmapConfig): readonly SettingSection[
     title: SECTION_TITLES[key],
     groups: groupsOf(config[key], [key]),
   }));
+}
+
+/** Every setting of the default config, flattened; the shape does not change at runtime. */
+const DEFAULT_FIELDS: readonly SettingField[] = settingSections(DEFAULT_CONFIG).flatMap((section) => section.groups.flatMap((group) => group.fields));
+
+/**
+ * Compares by value, not identity: settings loaded from storage equal the defaults without being `DEFAULT_CONFIG`,
+ * and "Reset settings" should still read as having nothing to reset.
+ */
+export function isAtDefaults(config: MindmapConfig): boolean {
+  return DEFAULT_FIELDS.every((field) => valueAt(config, field.path) === valueAt(DEFAULT_CONFIG, field.path));
 }
 
 function groupsOf(value: unknown, path: ConfigPath): SettingGroup[] {
