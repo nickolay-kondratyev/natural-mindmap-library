@@ -39,6 +39,9 @@ This epic is the plan. Break it into child tickets (see "Planned split") before 
 - **Document-order layout:** a config option puts first-level nodes clockwise: the first half on the right, top to
   bottom, then the second half on the left, bottom to top, in data order. Explicit `side` values still win.
 - **Long labels:** a node label never shrinks below a configurable minimum size; text that still does not fit ends with "…".
+- **Emoji and non-Latin text** (decided by the human, 2026-10-23, since headings may contain both): when the label font
+  lacks a glyph for some character of a label, that label is **not drawn on its branch**, and its **node label still
+  shows every character**, using fallback fonts. Labels the font fully covers render exactly as today.
 - **Demo:** the runner can take pasted Markdown and show its headings as the map (parser in `demo/` only), so the
   heading map can be tuned without Obsidian.
 - **Release:** `docs/architecture.md` and `spec.md` describe the new API and options, and a git tag (e.g. `v0.2.0`)
@@ -69,21 +72,25 @@ This epic is the plan. Break it into child tickets (see "Planned split") before 
 - Config stays plain serializable data (`MindmapConfig`). Event callbacks go on `MountOptions` and `<Mindmap>` props,
   the same way `onNodeReposition` does.
 - No Markdown knowledge in `src/`: the heading parser exists only in `demo/`. The plugin uses Obsidian's own heading list.
+- Fallback on nodes, recommended approach (pending the human's OK): draw such node labels with the canvas's own text
+  drawing (`fillText`) and a CSS font list that starts with the label font, which `src/core/text/cssFontFaces.ts`
+  already registers from the same bytes. The browser then uses the label font for the glyphs it has and system fonts
+  (color emoji, CJK, Cyrillic) for the rest. This is a deliberate exception to spec R17 (outline-only text), only for
+  labels the font cannot cover; note it in `spec.md` R17. Why not bundle fallback fonts: Noto CJK alone is many MB,
+  and opentype.js cannot draw color emoji. Obsidian desktop is Chromium, so system fallback is reliable there.
+- "Missing glyph" means the font maps the character to glyph 0 (`.notdef`) in `src/core/text/loadedFont.ts`. Joiners
+  and variation selectors inside emoji sequences (U+200D, U+FE0F) and whitespace must not count as missing by themselves.
 
 ## Planned split (child tickets, one session each)
 
 1. **Speed:** scene cache, faster branch routing, `npm run bench`.
 2. **Host hooks for navigation:** click event, highlight, center on node, the switch that turns off add, rename and
    delete. Settle the click rule with ticket `nid_gbj85a2pad7yofsjnf7ng26ff_e` in mind.
-3. **Heading-friendly layout and labels:** clockwise side order, minimum label size plus "…".
+3. **Heading-friendly layout and labels:** clockwise side order, minimum label size plus "…", emoji / non-Latin
+   handling (hide on the branch, fallback fonts on the node).
 4. **Demo "Paste Markdown" + release:** demo mode, docs, git tag. Depends on 1-3.
 
 1, 2 and 3 are independent and can run in parallel.
-
-## Open questions
-
-- Fallback fonts for emoji / non-Latin headings (decision 10 in `next-steps-prior-to-obsidian.md`): add them to this
-  epic only if the human's notes need them.
 
 ## Non-goals
 

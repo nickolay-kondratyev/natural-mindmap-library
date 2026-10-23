@@ -55,8 +55,9 @@ Only this blocks the first launch. Everything else in Phase 0 is for the folder 
 
 Not needed for the launch: collapse, drawing only what's on screen, less detail when zoomed out, the
 right-click hook, saved positions (dragged spots reset when the note reopens), several maps at once,
-the settings screen, and touch. Two depend on your notes: the light theme (only if you use Obsidian in light
-mode) and fallback fonts (only if your headings contain emoji or non-Latin text, see decision 10).
+the settings screen, and touch. The light theme is needed only if you use Obsidian in light mode.
+Also in the launch (decision 10): labels with emoji or non-Latin characters the font lacks are hidden on the
+branch, and the node label uses fallback fonts.
 
 ## Phase 0: library work (this repo)
 
@@ -230,5 +231,5 @@ Until each one ships, the plugin turns it off with the per-node rules (0.2), so 
 8. **First-level side order for headings:** recommend adding the "clockwise" option and using it in heading mode.
 9. **Reorder siblings in the first launch?** Recommend no: ship move (change parent) first, then add reorder
    as the next step (an optional position on `move`, plus dropping between two siblings).
-10. **Do your headings use emoji or non-Latin text** (e.g. Cyrillic)? If yes, fallback fonts join the first
-    launch; if not, they wait.
+10. ~~Emoji / non-Latin headings?~~ **Decided:** headings may use both. If the label font lacks a character, hide
+    that label on its branch, and show the node label with fallback fonts. Part of the first launch.
