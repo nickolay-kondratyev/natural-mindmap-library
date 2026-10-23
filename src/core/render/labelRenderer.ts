@@ -4,7 +4,7 @@ import type { Branch } from '../geometry/branchPath';
 import type { NodeId } from '../model/node';
 import type { NodeBox } from '../shape/nodeShape';
 import { GlyphRun } from '../text/glyphRun';
-import { layoutBranchLabel, layoutNodeLabel } from '../text/labelLayout';
+import { layoutBranchLabel, layoutNodeLabel, type LabelLayout } from '../text/labelLayout';
 import { paintLabel, type LabelInk } from '../text/labelPainter';
 import type { LabelFonts } from '../text/labelFontLoader';
 import type { LoadedFont } from '../text/loadedFont';
@@ -64,15 +64,27 @@ function drawBranchLabel(
   font: LoadedFont,
   branch: Branch,
 ): void {
-  const parent = boxOf(scene, branch.parentId);
-  const child = boxOf(scene, branch.childId);
-  if (parent === null || child === null) return;
   const style = config.text.branch;
   const shaped = font.shape(scene.tree.nodeById(branch.childId).text);
   const run = new GlyphRun(shaped.advancesEm, style.stretch);
-  const span = rimToRimSpan(branch.path, parent, child, extensions.nodeShape);
-  const layout = layoutBranchLabel(branch.path, span, run, style, config.text.branchFit);
+  const layout = layoutSceneBranchLabel(scene, config, extensions, run, branch);
+  if (layout === null) return;
   paintLabel(ctx, font, shaped, run, layout, inkOf(style, config.theme.color.branchText, config));
+}
+
+/** Lays out the child's label along `branch` between the two node rims; `null` when a node has no box. */
+export function layoutSceneBranchLabel(
+  scene: Scene,
+  config: MindmapConfig,
+  extensions: MindmapExtensions,
+  run: GlyphRun,
+  branch: Branch,
+): LabelLayout | null {
+  const parent = boxOf(scene, branch.parentId);
+  const child = boxOf(scene, branch.childId);
+  if (parent === null || child === null) return null;
+  const span = rimToRimSpan(branch.path, parent, child, extensions.nodeShape);
+  return layoutBranchLabel(branch.path, span, run, config.text.branch, config.text.branchFit);
 }
 
 function inkOf(style: FontConfig, fill: string, config: MindmapConfig): LabelInk {
