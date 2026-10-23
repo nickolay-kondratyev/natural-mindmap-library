@@ -1,4 +1,5 @@
 import type { Point } from '../model/node';
+import { fitView, type ContentBounds, type ViewportSize } from './fitView';
 
 /**
  * Library-local view (spec I1): `screen = viewportCenter + offset + zoom * scene`, in CSS pixels.
@@ -20,10 +21,13 @@ export const WHEEL_ZOOM_SENSITIVITY = 0.002;
 /**
  * Pan/zoom state. View changes never need host confirmation (I1); user-driven changes are reported via
  * `onChange` so the host can observe them, while `setView` (the host's own write) is not echoed back.
+ * The initial view fits the whole map (`setContentBounds` once the viewport has a size) and `reset` returns to it.
  */
 export class ViewController {
   private current: MindmapView = DEFAULT_VIEW;
   private viewportCenter: Point = { x: 0, y: 0 };
+  private contentBounds: ContentBounds | null = null;
+  private initialFitDone = false;
 
   constructor(private readonly onChange: (view: MindmapView) => void) {}
 
@@ -71,8 +75,21 @@ export class ViewController {
     this.zoomAt(this.viewportCenter, 1 / ZOOM_STEP_FACTOR);
   }
 
+  /**
+   * Extent of the painted map, refreshed on every paint so `reset` fits what is on screen. The first call with
+   * a sized viewport also performs the initial fit; a 0x0 viewport (hidden canvas) defers it to a later paint.
+   */
+  setContentBounds(bounds: ContentBounds | null): void {
+    this.contentBounds = bounds;
+    if (this.initialFitDone || bounds === null || this.viewportCenter.x === 0 || this.viewportCenter.y === 0) return;
+    this.initialFitDone = true;
+    this.reset();
+  }
+
+  /** Fits the whole map with a margin (spec I1 reset); without content bounds, the root-centered default view. */
   reset(): void {
-    this.update(DEFAULT_VIEW);
+    const target = this.contentBounds === null ? DEFAULT_VIEW : fitView(this.contentBounds, this.viewportSize());
+    this.update({ offset: target.offset, zoom: clampZoom(target.zoom) });
   }
 
   screenToScene(point: Point): Point {
@@ -89,6 +106,10 @@ export class ViewController {
       x: this.viewportCenter.x + offset.x + zoom * point.x,
       y: this.viewportCenter.y + offset.y + zoom * point.y,
     };
+  }
+
+  private viewportSize(): ViewportSize {
+    return { width: this.viewportCenter.x * 2, height: this.viewportCenter.y * 2 };
   }
 
   private update(view: MindmapView): void {

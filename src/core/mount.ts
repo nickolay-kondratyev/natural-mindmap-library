@@ -10,6 +10,7 @@ import { RepaintScheduler, windowFrameScheduler, type FrameScheduler } from './r
 import { buildScene } from './render/scene';
 import { fetchFontBytes, type FontFetcher } from './text/fontStore';
 import { LabelFontLoader, type LabelFontStatus } from './text/labelFontLoader';
+import { contentBounds } from './view/fitView';
 import { ViewController, type MindmapView } from './view/viewController';
 
 export interface MountOptions {
@@ -171,6 +172,9 @@ class CanvasMount implements MindmapHandle {
 
   private paint(): void {
     const scene = buildScene(this.edits.displayData, this.config, this.extensions);
+    // Feeds the fit target before drawing, so the initial fit (which reports a view change and thereby
+    // requests one more, identical frame) is already applied to this paint.
+    this.view.setContentBounds(contentBounds(scene.positions, scene.sizes));
     drawScene(this.ctx, scene, this.config, this.extensions, this.viewport, this.view.view, this.fonts.fonts());
   }
 }

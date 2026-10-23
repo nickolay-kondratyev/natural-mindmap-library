@@ -58,3 +58,4 @@ export {
 export { CONFIRM_IMMEDIATELY, DEFAULT_EDIT_HANDLER, InMemoryHost, type HostSimulation } from './edit/inMemoryHost';
 export type { NodeRepositionEvent } from './interaction/repositionEvent';
 export { DEFAULT_VIEW, MAX_ZOOM, MIN_ZOOM, type MindmapView } from './view/viewController';
+export { contentBounds, fitView, FIT_MARGIN_PX, type ContentBounds, type ViewportSize } from './view/fitView';
