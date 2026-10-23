@@ -53,8 +53,8 @@ describe('layoutNodeLabel', () => {
   // GIVEN a node centered at (100, 50)
   const center = { x: 100, y: 50 };
 
-  it('WHEN the label fits THEN it is centered on the node', () => {
-    const layout = layoutNodeLabel(center, 100, RUN, STYLE);
+  it('WHEN laid out THEN it is centered on the node', () => {
+    const layout = layoutNodeLabel(center, RUN, STYLE);
     expect(layout.glyphs.map((g) => g.center)).toEqual([
       { x: 85, y: 50 },
       { x: 95, y: 50 },
@@ -63,12 +63,8 @@ describe('layoutNodeLabel', () => {
     ]);
   });
 
-  it('WHEN the label fits THEN the font size is kept', () => {
-    expect(layoutNodeLabel(center, 100, RUN, STYLE).sizePx).toBe(10);
-  });
-
-  it('WHEN the label is wider than allowed THEN the font shrinks to fit', () => {
-    expect(layoutNodeLabel(center, 20, RUN, STYLE).sizePx).toBe(5);
+  it('WHEN laid out THEN the style font size is used', () => {
+    expect(layoutNodeLabel(center, RUN, STYLE).sizePx).toBe(10);
   });
 });
 

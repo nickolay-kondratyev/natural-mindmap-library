@@ -8,6 +8,7 @@ export {
   resolveConfig,
   type BranchConfig,
   type BranchTextFitConfig,
+  type NodeTextFitConfig,
   type DeepPartial,
   type FontConfig,
   type InteractionConfig,

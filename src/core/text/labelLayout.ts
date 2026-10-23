@@ -38,12 +38,11 @@ export function layoutBranchLabel(
 }
 
 /**
- * Straight node label centered on `center` (spec R2). Shrinks (never grows) the font so the label stays
- * within `maxWidthPx`; no glyphs are dropped inside nodes.
+ * Straight node label centered on `center` (spec R2) at `style.sizePx`; the caller has already fitted the run
+ * (size and cut) with `fitNodeText`.
  */
-export function layoutNodeLabel(center: Point, maxWidthPx: number, run: GlyphRun, style: BranchTextStyle): LabelLayout {
-  const nominalWidthPx = run.widthPx(style.sizePx, style.letterSpacingEm);
-  const sizePx = nominalWidthPx > maxWidthPx ? (style.sizePx * maxWidthPx) / nominalWidthPx : style.sizePx;
+export function layoutNodeLabel(center: Point, run: GlyphRun, style: BranchTextStyle): LabelLayout {
+  const { sizePx } = style;
   const widthPx = run.widthPx(sizePx, style.letterSpacingEm);
   const baseline = new StraightPath({ x: center.x - widthPx / 2, y: center.y }, { x: center.x + widthPx / 2, y: center.y });
   const glyphs = placeGlyphs(baseline, { startArc: 0, reversed: false }, run.glyphWidthsPx(sizePx), style.letterSpacingEm * sizePx);

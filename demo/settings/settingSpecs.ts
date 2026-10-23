@@ -49,6 +49,12 @@ export const NUMBER_RANGES: Readonly<Record<NumberSettingPath, NumberRange>> = {
   'text.branchFit.minPaddingPx': { min: 0, max: 20, step: 1 },
   'text.branchFit.minLetterSpacingEm': { min: -0.2, max: 0, step: 0.005 },
   'text.branchFit.minFontScale': { min: 0.2, max: 1, step: 0.01, hint: 'How far a long branch label may shrink.' },
+  'text.nodeFit.minFontScale': {
+    min: 0,
+    max: 1,
+    step: 0.01,
+    hint: 'How far a long node label may shrink before it is cut with "…"; 0 shrinks without limit.',
+  },
   'layout.horizontalGap': { min: 20, max: 400, step: 1 },
   'layout.verticalGap': { min: 0, max: 160, step: 1 },
   'layout.bowOffset': { min: 0, max: 400, step: 1, hint: 'How far the top and bottom root branches bow outward.' },
@@ -92,4 +98,5 @@ export const GROUP_TITLES: Readonly<Record<string, string>> = {
   'text.node': 'Node labels',
   'text.branch': 'Branch labels',
   'text.branchFit': 'Fitting long branch labels',
+  'text.nodeFit': 'Fitting long node labels',
 };

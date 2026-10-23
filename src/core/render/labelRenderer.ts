@@ -5,9 +5,10 @@ import type { NodeId } from '../model/node';
 import type { NodeBox } from '../shape/nodeShape';
 import { GlyphRun } from '../text/glyphRun';
 import { layoutBranchLabel, layoutNodeLabel, type LabelLayout } from '../text/labelLayout';
+import { ELLIPSIS, fitNodeText, glyphRunMeasure, truncatedShapedText } from '../text/nodeTextFit';
 import { paintLabel, type LabelInk } from '../text/labelPainter';
 import type { LabelFonts } from '../text/labelFontLoader';
-import type { LoadedFont } from '../text/loadedFont';
+import type { LoadedFont, ShapedText } from '../text/loadedFont';
 import { rimToRimSpan } from '../text/rimSpan';
 import type { Scene } from './scene';
 
@@ -43,9 +44,14 @@ function drawNodeLabel(
   isRoot: boolean,
 ): void {
   const style = config.text.node;
-  const shaped = font.shape(text);
-  const run = new GlyphRun(shaped.advancesEm, style.stretch);
-  const layout = layoutNodeLabel(box.center, box.size.width * NODE_LABEL_WIDTH_FRACTION, run, style);
+  const maxWidthPx = box.size.width * NODE_LABEL_WIDTH_FRACTION;
+  const full = font.shape(text);
+  const ellipsis = font.shape(ELLIPSIS);
+  const runOf = (shaped: ShapedText): GlyphRun => new GlyphRun(shaped.advancesEm, style.stretch);
+  const fit = fitNodeText(glyphRunMeasure(runOf(full), runOf(ellipsis), style.letterSpacingEm), maxWidthPx, style.sizePx, config.text.nodeFit);
+  const shaped = fit.truncated ? truncatedShapedText(full, ellipsis, fit.keptCount) : full;
+  const run = runOf(shaped);
+  const layout = layoutNodeLabel(box.center, run, { ...style, sizePx: fit.sizePx });
   paintLabel(ctx, font, shaped, run, layout, nodeLabelInk(config, isRoot));
 }
 
