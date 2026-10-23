@@ -35,7 +35,16 @@ export interface MindmapProps {
 /** Imperative API exposed through `ref`: zoom/reset buttons, reading/setting the view, sending edits. */
 export type MindmapApi = Pick<
   MindmapHandle,
-  'requestEdit' | 'getEditStatus' | 'clearEditRejection' | 'getView' | 'setView' | 'zoomIn' | 'zoomOut' | 'resetView'
+  | 'requestEdit'
+  | 'getEditStatus'
+  | 'clearEditRejection'
+  | 'getData'
+  | 'getNodeScreenBox'
+  | 'getView'
+  | 'setView'
+  | 'zoomIn'
+  | 'zoomOut'
+  | 'resetView'
 >;
 
 type CallbackProp = 'onEditRequest' | 'onEditStatusChange' | 'onViewChange' | 'onNodeReposition' | 'onFontStatusChange';
@@ -124,6 +133,8 @@ function apiDelegatingTo(handleRef: { readonly current: MindmapHandle | null }):
     requestEdit: (request) => handle().requestEdit(request),
     getEditStatus: () => handle().getEditStatus(),
     clearEditRejection: () => handle().clearEditRejection(),
+    getData: () => handle().getData(),
+    getNodeScreenBox: (nodeId) => handle().getNodeScreenBox(nodeId),
     getView: () => handle().getView(),
     setView: (view) => handle().setView(view),
     zoomIn: () => handle().zoomIn(),

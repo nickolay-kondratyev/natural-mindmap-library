@@ -3,11 +3,12 @@ import type { EditHandler, EditRequest } from './edit/editRequest';
 import { EditSession, type EditStatus, type EditSubmitResult } from './edit/editSession';
 import { DEFAULT_EDIT_HANDLER } from './edit/inMemoryHost';
 import { resolveExtensions, type MindmapExtensions } from './extensions';
+import { CanvasInteractions } from './interaction/canvasInteractions';
 import type { NodeRepositionEvent } from './interaction/repositionEvent';
-import type { MindmapData } from './model/node';
+import type { MindmapData, NodeId } from './model/node';
 import { drawScene, type Viewport } from './render/canvasRenderer';
 import { RepaintScheduler, windowFrameScheduler, type FrameScheduler } from './render/repaintScheduler';
-import { buildScene } from './render/scene';
+import type { NodeBox } from './shape/nodeShape';
 import { fetchFontBytes, type FontFetcher } from './text/fontStore';
 import { LabelFontLoader, type LabelFontStatus } from './text/labelFontLoader';
 import { contentBounds } from './view/fitView';
@@ -29,7 +30,7 @@ export interface MountOptions {
   readonly onEditStatusChange?: (status: EditStatus) => void;
   /** View changes made by the library (pan, zoom, API zoom/reset, the initial fit-to-content); not fired for `setView`. */
   readonly onViewChange?: (view: MindmapView) => void;
-  /** Node drags (spec I2); emitted by the pointer interactions. */
+  /** Node drags (spec I2), once per drop; the position stays applied across later `setData` calls. */
   readonly onNodeReposition?: (event: NodeRepositionEvent) => void;
 }
 
@@ -47,6 +48,10 @@ export interface MindmapHandle {
   getEditStatus(): EditStatus;
   /** Dismisses a shown rejection reason. */
   clearEditRejection(): void;
+  /** Last host-confirmed data; with the default in-memory host (spec I6) this is where confirmed edits end up. */
+  getData(): MindmapData;
+  /** Node box in canvas CSS px as last painted (`null` if not shown), e.g. to place host UI next to a node. */
+  getNodeScreenBox(nodeId: NodeId): NodeBox | null;
   getView(): MindmapView;
   setView(view: MindmapView): void;
   zoomIn(): void;
@@ -65,6 +70,7 @@ class CanvasMount implements MindmapHandle {
   private readonly fonts: LabelFontLoader;
   private readonly edits: EditSession;
   private readonly view: ViewController;
+  private readonly interactions: CanvasInteractions;
   private config: MindmapConfig;
   private extensions: MindmapExtensions;
   private viewport: Viewport;
@@ -77,6 +83,7 @@ class CanvasMount implements MindmapHandle {
     if (ctx === null) throw new Error('Canvas 2D context is not available');
     this.ctx = ctx;
     this.edits = new EditSession(options.data, options.onEditRequest ?? DEFAULT_EDIT_HANDLER, (status) => {
+      this.interactions.onEditStatusChange(status);
       this.scheduler.request();
       options.onEditStatusChange?.(status);
     });
@@ -92,6 +99,16 @@ class CanvasMount implements MindmapHandle {
       onStatusChange: (status) => options.onFontStatusChange?.(status),
     });
     this.fonts.use(this.config.text);
+    this.interactions = new CanvasInteractions({
+      canvas,
+      edits: this.edits,
+      view: this.view,
+      config: () => this.config,
+      extensions: () => this.extensions,
+      fonts: () => this.fonts.fonts(),
+      requestRepaint: () => this.scheduler.request(),
+      onNodeReposition: (event) => options.onNodeReposition?.(event),
+    });
     // Size the backing store from the canvas's CSS box right away so the first paint is correct even for
     // hosts that never call `resize` (the React wrapper does, via ResizeObserver).
     this.viewport = { width: canvas.clientWidth, height: canvas.clientHeight, devicePixelRatio: window.devicePixelRatio };
@@ -135,6 +152,14 @@ class CanvasMount implements MindmapHandle {
     this.edits.clearRejection();
   }
 
+  getData(): MindmapData {
+    return this.edits.confirmedData;
+  }
+
+  getNodeScreenBox(nodeId: NodeId): NodeBox | null {
+    return this.interactions.nodeScreenBox(nodeId);
+  }
+
   getView(): MindmapView {
     return this.view.view;
   }
@@ -157,6 +182,7 @@ class CanvasMount implements MindmapHandle {
   }
 
   destroy(): void {
+    this.interactions.dispose();
     this.edits.dispose();
     this.fonts.dispose();
     this.scheduler.cancel();
@@ -171,10 +197,11 @@ class CanvasMount implements MindmapHandle {
   }
 
   private paint(): void {
-    const scene = buildScene(this.edits.displayData, this.config, this.extensions);
+    const scene = this.interactions.sceneToPaint();
     // Feeds the fit target before drawing, so the initial fit (which reports a view change and thereby
     // requests one more, identical frame) is already applied to this paint.
     this.view.setContentBounds(contentBounds(scene.positions, scene.sizes));
     drawScene(this.ctx, scene, this.config, this.extensions, this.viewport, this.view.view, this.fonts.fonts());
+    this.interactions.paintOverlay(this.ctx, scene, this.viewport);
   }
 }

@@ -31,12 +31,7 @@ export function drawScene(
   ctx.setTransform(viewport.devicePixelRatio, 0, 0, viewport.devicePixelRatio, 0, 0);
   ctx.fillStyle = config.theme.color.background;
   ctx.fillRect(0, 0, viewport.width, viewport.height);
-
-  // Scene coordinates put the root at (0,0); center it in the viewport.
-  ctx.translate(viewport.width / 2, viewport.height / 2);
-  // Pan/zoom (spec I1): same mapping as ViewController.sceneToScreen.
-  ctx.translate(view.offset.x, view.offset.y);
-  ctx.scale(view.zoom, view.zoom);
+  applySceneTransform(ctx, viewport, view);
 
   for (const branch of scene.branches) {
     const color = scene.colors.get(branch.childId);
@@ -53,6 +48,15 @@ export function drawScene(
   }
 
   drawLabels(ctx, scene, config, extensions, fonts);
+}
+
+/** Maps scene coordinates onto the canvas: the same mapping as `ViewController.sceneToScreen` (spec I1). */
+export function applySceneTransform(ctx: CanvasRenderingContext2D, viewport: Viewport, view: MindmapView): void {
+  ctx.setTransform(viewport.devicePixelRatio, 0, 0, viewport.devicePixelRatio, 0, 0);
+  // Scene coordinates put the root at (0,0); center it in the viewport.
+  ctx.translate(viewport.width / 2, viewport.height / 2);
+  ctx.translate(view.offset.x, view.offset.y);
+  ctx.scale(view.zoom, view.zoom);
 }
 
 function fillOutline(ctx: CanvasRenderingContext2D, outline: BranchOutline, fill: string): void {

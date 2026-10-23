@@ -57,4 +57,6 @@ export {
 } from './edit/editSession';
 export { CONFIRM_IMMEDIATELY, DEFAULT_EDIT_HANDLER, InMemoryHost, type HostSimulation } from './edit/inMemoryHost';
 export type { NodeRepositionEvent } from './interaction/repositionEvent';
+export { HANDLE_GAP, HANDLE_RADIUS } from './interaction/hitTest';
+export { LABEL_EDITOR_ACCESSIBLE_NAME } from './interaction/inlineLabelEditor';
 export { DEFAULT_VIEW, MAX_ZOOM, MIN_ZOOM, type MindmapView } from './view/viewController';

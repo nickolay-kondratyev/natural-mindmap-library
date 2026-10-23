@@ -30,3 +30,13 @@ describe('buildScene', () => {
     );
   });
 });
+
+describe('GIVEN a position override for a first-level node', () => {
+  const dragged = { x: 500, y: 300 };
+  const scene = buildScene(REFERENCE_DATA, DEFAULT_CONFIG, DEFAULT_EXTENSIONS, new Map([['vida', dragged]]));
+
+  it('WHEN built THEN its incoming branch re-routes to end at the new position', () => {
+    const branch = scene.branches.find((b) => b.childId === 'vida');
+    expect(branch?.path.sampleAt(branch.path.length).point).toEqual(dragged);
+  });
+});
