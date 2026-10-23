@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import { SETTINGS_STORAGE_KEY } from '../demo/settings/localStorageSettings';
 import { nodeBox, renameByDoubleClick, textOf } from './demoPage';
 import { expect, test } from './fixtures';
 
@@ -31,8 +32,8 @@ test.describe('demo runner (spec §6a)', () => {
 
   test('GIVEN a changed setting WHEN the page is reloaded THEN the setting is kept (settings storage)', async ({ page }) => {
     await page.getByTestId(ROOT_WIDTH_SETTING).fill(WIDER_ROOT_PX);
-    // The demo stores settings in localStorage; reloading before the write would test nothing.
-    await page.waitForFunction(() => window.localStorage.length > 0);
+    // Settings are written asynchronously; reloading before the write would test nothing.
+    await page.waitForFunction((key) => window.localStorage.getItem(key) !== null, SETTINGS_STORAGE_KEY);
     await page.reload();
     await expect(page.getByTestId(ROOT_WIDTH_SETTING)).toHaveValue(WIDER_ROOT_PX);
   });
