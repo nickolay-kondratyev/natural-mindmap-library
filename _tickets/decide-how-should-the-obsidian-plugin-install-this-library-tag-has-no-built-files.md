@@ -32,3 +32,9 @@ npm publishing is a non-goal of epic `nid_rk795rjqzzksdjrhm03dy6s7l_e`.
 
 The human picks an option; if A or B, that work is done here and the plugin can install the tagged version.
 
+
+## Notes
+
+**2026-10-23T20:49:15Z**
+
+Reviewer finding: npm DOES run `prepare` when installing a git dependency, so a plugin depending on the tag would also run `scripts/install-browsers.mjs` (may download Chromium) and still get no dist/. README line about prepare running in "dev checkouts only" is wrong for git deps. Reviewer recommends option A with the browser install moved out of `prepare` into a separate dev step. Orchestrator still recommends C for now (plugin uses npm pack / file: path), with that README line fixed as part of whichever option is picked.
