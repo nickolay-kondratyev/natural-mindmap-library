@@ -22,7 +22,7 @@ the library work that launch needs, so the plugin can be built on the public API
 The plugin does the Markdown work itself (it maps the library's existing `move` request onto a section cut/paste). The
 library stays Markdown-free.
 
-This epic is the plan. Break it into child tickets (see "Planned split") before implementation starts.
+This epic is the plan; it is split into the child tickets listed under "Children".
 
 ## Done criteria
 
