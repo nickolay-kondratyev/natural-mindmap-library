@@ -60,9 +60,15 @@ export interface TextConfig {
   readonly branchFit: BranchTextFitConfig;
 }
 
+/** How the map behaves under the user's hands (spec I1-I5). */
+export interface InteractionConfig {
+  /** Ask before a node dropped onto another node becomes its child (spec I3); the dialog's "Don't ask again" turns it off. */
+  readonly confirmReparent: boolean;
+}
+
 /**
- * Every visual parameter of the library. All fields are plain, serializable data so a settings panel can
- * be generated from the shape. Code-level extension points (stages, shapes, strategies) live in
+ * Every visual and behavioral parameter of the library. All fields are plain, serializable data so a settings
+ * panel can be generated from the shape. Code-level extension points (stages, shapes, strategies) live in
  * `MindmapExtensions`, not here.
  */
 export interface MindmapConfig {
@@ -71,6 +77,7 @@ export interface MindmapConfig {
   readonly branch: BranchConfig;
   readonly text: TextConfig;
   readonly layout: LayoutConfig;
+  readonly interaction: InteractionConfig;
 }
 
 /** Recursive partial for plain-data config objects; arrays are treated as leaves (replaced, not merged). */
@@ -115,6 +122,7 @@ export const DEFAULT_CONFIG: MindmapConfig = {
     branchFit: { paddingPx: 8, minPaddingPx: 2, minLetterSpacingEm: -0.05, minFontScale: 0.6 },
   },
   layout: DEFAULT_LAYOUT_CONFIG,
+  interaction: { confirmReparent: true },
 };
 
 /** Merges a partial user config over the defaults (deep for objects, replace for arrays and primitives). */
