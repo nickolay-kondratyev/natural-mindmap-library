@@ -31,6 +31,14 @@ preview, else draft child, else host-confirmed data, with the user's position ov
 `drawScene` applies the `ViewController` pan/zoom, then `drawInteractionOverlay` paints hover buttons / drop
 highlight / pending veil on top.
 
+**Scene cache:** `buildScene` runs only when data, config, extensions or position overrides are new objects
+(`render/sceneCache.ts` = `rememberLast(buildScene)`, one slot per mount). Hover, pan, zoom and the busy animation
+repaint with the same four objects and reuse the scene; anything the user should see arrives as a new object (host
+data, `resolveConfig` result, the edit preview's data, the overrides map). Derived inputs that would otherwise be
+fresh each call (`EditSession.preview`, the draft child and the pending-move overrides in `LocalEditState`) are
+themselves remembered by input identity, so a pending edit's busy frames stay cheap. Only the drag preview rebuilds
+branches per pointer move, over a frozen base scene.
+
 ## Modules (`src/core/`)
 
 | Dir | Owns | Key names |
@@ -39,10 +47,11 @@ highlight / pending veil on top.
 | `config/` | Plain-data config + defaults + deep merge + settings storage seam | `MindmapConfig`, `DEFAULT_CONFIG`, `resolveConfig`, `ThemeConfig`, `SettingsStorage`, `SettingsPersistence`, `restoreConfig` |
 | `size/` | Single source of node sizes (R4) | `resolveNodeSizes(tree, config.node)` -> `NodeSizeMap` |
 | `layout/` | Layout `type` union + stage pipeline + bow curve + default stages + user position overrides | `LayoutConfig`, `LayoutStage`, `LayoutContext`, `runLayoutPipeline`, `defaultLayoutStages`, `layoutMindmap`, `BowCurve`, `tidyTreeStage`, `rootBowStage`, `handDrawnJitterStage`, `collisionStage` / `resolveCollisions`, `applyPositionOverrides`, `moveSubtree` |
-| `geometry/` | Branch path representation + limb geometry | `BranchPath { length, sampleAt(arcLength) -> { point, tangent } }`, `Branch { path, width }`, `CubicBezierPath`, `buildBranches` (curves + fork + routing), `taperedOutline` |
+| `geometry/` | Branch path representation + limb geometry | `BranchPath { length, sampleAt(arcLength) -> { point, tangent } }`, `Branch { path, width }`, `CubicBezierPath`, `buildBranches` (curves + fork + routing), `Box` helpers, `taperedOutline` |
 | `shape/` | Node shape seam (R2) | `NodeShape { draw, contains, rimPoint }`, `ellipseShape` |
 | `color/` | Color strategy seam (R10/R11) | `ColorStrategy.resolve(tree, theme) -> NodeColorMap`, `parentDerivedColorStrategy` |
-| `render/` | Scene assembly, canvas drawing, frame coalescing | `buildScene`, `drawScene`, `drawLabels`, `drawInteractionOverlay`, `RepaintScheduler` |
+| `render/` | Scene assembly, scene cache, canvas drawing, frame coalescing | `buildScene`, `cachedSceneBuilder`, `drawScene`, `drawLabels`, `drawInteractionOverlay`, `RepaintScheduler` |
+| `memo/` | Identity memo for the repaint path | `rememberLast(fn)` (previous result while every argument is `===`) |
 | `text/` | Font loading + glyph-outline labels (R12-R18, L6) | `LabelFontLoader` / `FontStore` (`FontFetcher` seam), `LoadedFont.shape`, `rimToRimSpan`, `fitBranchText`, `layoutBranchLabel`, `layoutNodeLabel`, `paintLabel`, `CssFontFaces` (same bytes as DOM font for inline rename) |
 | `extensions.ts` | Bundle of code-level extension points | `MindmapExtensions`, `DEFAULT_EXTENSIONS` |
 | `edit/` | Request -> confirm protocol (I5), default host (I6) | `EditRequest`, `EditHandler`, `EditSession`, `findEditProblem`, `applyEdit`, `InMemoryHost` |
@@ -80,7 +89,9 @@ highlight / pending veil on top.
   cubic that leaves the parent horizontally through a fork point shared by all siblings (soft Y), settles
   horizontally into the child, then `branchRouting.ts` nudges its inner control points vertically away from
   unrelated node boxes and from overlapping limbs (simple separation, not physics; curve interior only, since
-  clearing an obstacle near an end would bulge the whole limb). `Branch.width` is the
+  clearing an obstacle near an end would bulge the whole limb). Sample-level checks run only for pairs whose
+  clearance-inflated bounding boxes overlap (a cubic stays inside its control points' box), which keeps the routed
+  shapes identical to a full scan while scaling to ~1,000 nodes; `npm run bench` reports `buildScene` times. `Branch.width` is the
   start/end thickness (`rootWidth * widthPerLevel^(level-1)`, end = `taper` of start); `taperedOutline(branch,
   asymmetry)` turns it into the polygon the renderer fills, with a hash-of-child-id-seeded one-sided bulge (R7);
   its edges are sampled evenly plus wherever the limb bends (cost follows total turning), so tight bends show no corners.
@@ -160,7 +171,10 @@ page and loads none of the runner code or CSS.
 ## Testing
 
 - Unit (Vitest, node env, BDD naming): pure logic (core modules and the demo's settings/host logic) has a sibling
-  `*.test.ts`. DOM and canvas wiring (`CanvasInteractions`, DOM overlays, canvas drawing, React) is kept thin and
+  `*.test.ts`.
+- Bench (`npm run bench`, `bench/*.bench.ts` under `bench/vitest.bench.config.ts`): prints `buildScene` timings for
+  synthetic trees (`test-support/syntheticTree.ts`, 50/200/500/1,000 nodes). A report only, never a gate, and not
+  part of `npm test`. DOM and canvas wiring (`CanvasInteractions`, DOM overlays, canvas drawing, React) is kept thin and
   covered by E2E plus the acceptance screenshot instead; when such wiring grows a decision, move it into a pure unit.
   `npm run coverage` reports unit coverage (no threshold gate).
 - E2E (Playwright, Chromium): `e2e/` runs against the built demo served by `vite preview`. Import `test`

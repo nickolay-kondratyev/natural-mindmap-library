@@ -29,9 +29,11 @@ other heading edits -> folder/vault map. Collapse only blocks the folder map; fo
 | 2,000 | 23,494 ms |
 
 Per stage at 1,000 nodes: tidy-tree 2 ms, bow + jitter 0 ms, collision 29 ms, **branch routing 5,885 ms**.
-The cost is almost all in `src/core/geometry/branchRouting.ts` (its own comment names the ceiling:
-O(branches² x samples²) for limb separation). One frame is 16 ms, and `CanvasInteractions.sceneToPaint`
-rebuilds the scene every paint.
+The cost was almost all in `src/core/geometry/branchRouting.ts` (O(branches² x samples²) for limb separation),
+and `CanvasInteractions.sceneToPaint` rebuilt the scene every paint.
+
+Done (ticket `nid_t5ydqj1ar6fdjksdps0sk2e0g_e`): routing skips pairs whose boxes cannot touch (same shapes), and the
+scene is cached by input identity. `npm run bench` after: 200 nodes 4.7 ms, 500 nodes 18.6 ms, 1,000 nodes 56 ms.
 
 Good news: tidy tree and collision are cheap enough up to ~1,000 nodes, and building the tree index from
 the flat data is cheap. **Cost follows the number of visible nodes, not the size of the data**, so collapse
