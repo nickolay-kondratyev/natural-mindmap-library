@@ -183,7 +183,8 @@ kbd {
 
 .field input[type='range'],
 .field select,
-.field input[type='text'] {
+.field input[type='text'],
+.field textarea {
   display: block;
   width: 100%;
   box-sizing: border-box;
@@ -191,7 +192,8 @@ kbd {
 }
 
 .field select,
-.field input[type='text'] {
+.field input[type='text'],
+.field textarea {
   min-height: 30px;
   padding: 0 8px;
   border: 1px solid var(--divider);
@@ -199,6 +201,18 @@ kbd {
   background: var(--inset-bg);
   color: var(--text-1);
   font: inherit;
+}
+
+.field textarea {
+  padding: 6px 8px;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12px;
+  resize: vertical;
+}
+
+/* Below the field it belongs to. */
+.field + .button-row {
+  margin-top: 8px;
 }
 
 .field--inline {
