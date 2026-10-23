@@ -1,5 +1,6 @@
 import type { MindmapConfig } from '../config/config';
 import type { MindmapExtensions } from '../extensions';
+import { taperedOutline, type BranchOutline } from '../geometry/taperedOutline';
 import type { Point } from '../model/node';
 import type { Scene } from './scene';
 
@@ -11,13 +12,11 @@ export interface Viewport {
 }
 
 const NODE_OUTLINE_WIDTH_PX = 2;
-const PLACEHOLDER_BRANCH_WIDTH_PX = 6;
 const PLACEHOLDER_FONT_FAMILY = 'sans-serif';
 
 /**
- * Draws a scene: background, branches under nodes (spec R9), node shapes, labels.
- * Branch strokes and `fillText` labels are scaffold placeholders; the branch and font tickets replace them
- * with tapered filled limbs and glyph outlines (R5, R17).
+ * Draws a scene: background, filled tapered limbs under nodes (spec R5, R9), node shapes, labels.
+ * `fillText` labels are a scaffold placeholder; the font ticket replaces them with glyph outlines (R17).
  */
 export function drawScene(
   ctx: CanvasRenderingContext2D,
@@ -36,14 +35,7 @@ export function drawScene(
   for (const branch of scene.branches) {
     const color = scene.colors.get(branch.childId);
     if (color === undefined) continue;
-    const start = branch.path.sampleAt(0).point;
-    const end = branch.path.sampleAt(branch.path.length).point;
-    ctx.beginPath();
-    ctx.moveTo(start.x, start.y);
-    ctx.lineTo(end.x, end.y);
-    ctx.lineWidth = PLACEHOLDER_BRANCH_WIDTH_PX;
-    ctx.strokeStyle = color.fill;
-    ctx.stroke();
+    fillOutline(ctx, taperedOutline(branch, config.branch.asymmetry), color.fill);
   }
 
   for (const node of scene.tree.nodes) {
@@ -54,6 +46,17 @@ export function drawScene(
     extensions.nodeShape.draw(ctx, { center, size }, { ...color, outlineWidth: NODE_OUTLINE_WIDTH_PX });
     drawPlaceholderLabel(ctx, node.text, center, node.parentId === null, config);
   }
+}
+
+function fillOutline(ctx: CanvasRenderingContext2D, outline: BranchOutline, fill: string): void {
+  const first = outline[0];
+  if (first === undefined) return;
+  ctx.beginPath();
+  ctx.moveTo(first.x, first.y);
+  for (const point of outline.slice(1)) ctx.lineTo(point.x, point.y);
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
 }
 
 function drawPlaceholderLabel(

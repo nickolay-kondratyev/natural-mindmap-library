@@ -25,7 +25,10 @@ export { defaultLayoutStages, runLayoutPipeline } from './layout/pipeline';
 export { placeholderBilateralStage } from './layout/placeholderBilateralStage';
 
 export { resolveNodeSizes, defaultSizeAtDepth, type NodeSizeMap } from './size/nodeSizeResolver';
-export { StraightPath, type Branch, type BranchPath, type PathSample } from './geometry/branchPath';
+export { StraightPath, type Branch, type BranchPath, type BranchWidth, type PathSample } from './geometry/branchPath';
+export { CubicBezierPath, type CubicControlPoints } from './geometry/cubicBezierPath';
+export { buildBranches, widthAtDepth, type BranchGeometryInput } from './geometry/branchGeometry';
+export { taperedOutline, type BranchOutline } from './geometry/taperedOutline';
 export { ellipseShape, type NodeBox, type NodeFillStyle, type NodeShape } from './shape/nodeShape';
 export { parentDerivedColorStrategy, type ColorStrategy, type NodeColor, type NodeColorMap } from './color/colorStrategy';
 
