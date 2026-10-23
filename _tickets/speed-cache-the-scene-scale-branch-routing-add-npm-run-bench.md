@@ -1,13 +1,13 @@
 ---
+closed_iso: 2026-10-23T20:35:04Z
 profile: higher
 id: nid_t5ydqj1ar6fdjksdps0sk2e0g_e
 title: "Speed: cache the scene, scale branch routing, add npm run bench"
-status: in_progress
-pwd: /home/nickolaykondratyev/git_repos/nickolay-kondratyev_natural-mindmap-library/.worktree/t-t5ydqj1a
+status: closed
 deps: []
 links: []
 created_iso: 2026-10-23T20:13:10Z
-status_updated_iso: 2026-10-23T20:18:19Z
+status_updated_iso: 2026-10-23T20:35:04Z
 type: task
 priority: 2
 assignee: CC_WITH-nickolaykondratyev
