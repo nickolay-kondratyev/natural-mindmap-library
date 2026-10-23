@@ -1,6 +1,7 @@
 # Changelog
 
-Versions are git tags (`vX.Y.Z`); the package is not published to npm yet, so depend on a tag as a git dependency.
+Versions are git tags (`vX.Y.Z`); the package is not published to npm yet. `dist/` is not committed, so a git
+dependency on a tag does not get a built library on its own; build from the tagged commit (`npm run build`).
 While 0.x, a minor version may change the API.
 
 ## 0.2.0
