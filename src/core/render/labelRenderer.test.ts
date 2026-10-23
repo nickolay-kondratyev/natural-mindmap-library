@@ -1,11 +1,12 @@
 import { vendoredKalamBytes } from '../../../test-support/vendoredKalam';
 import { DEFAULT_CONFIG } from '../config/config';
 import { DEFAULT_EXTENSIONS } from '../extensions';
+import type { MindmapData } from '../model/node';
 import { REFERENCE_DATA } from '../model/referenceData';
 import { GlyphRun } from '../text/glyphRun';
 import type { PlacedGlyph } from '../text/glyphPlacement';
 import { LoadedFont } from '../text/loadedFont';
-import { layoutSceneBranchLabel, nodeLabelInk } from './labelRenderer';
+import { drawLabels, layoutSceneBranchLabel, nodeLabelInk } from './labelRenderer';
 import { buildScene } from './scene';
 
 describe('nodeLabelInk', () => {
@@ -56,5 +57,37 @@ describe('GIVEN the reference map with its real curved, routed limbs and the ven
 
   it('WHEN every branch label is laid out THEN every glyph reads upright on both sides', () => {
     expect(allGlyphs.filter((g) => Math.cos(g.angle) < 0)).toEqual([]);
+  });
+});
+
+/** A canvas context that only records what was called: enough to tell outline painting from `fillText`. */
+function recordingContext(): { ctx: CanvasRenderingContext2D; calls: { method: string; args: unknown[] }[] } {
+  const calls: { method: string; args: unknown[] }[] = [];
+  const ctx = new Proxy({} as Record<string, unknown>, {
+    get: (_target, method: string) => (...args: unknown[]) => {
+      calls.push({ method, args });
+      return method === 'measureText' ? { width: 10 } : undefined;
+    },
+    set: () => true,
+  }) as unknown as CanvasRenderingContext2D;
+  return { ctx, calls };
+}
+
+describe('GIVEN a map whose only child label has CJK characters the vendored Kalam font lacks', () => {
+  const data: MindmapData = [
+    { id: 'root', parentId: null, text: 'Root' },
+    { id: 'jp', parentId: 'root', text: '\u65e5\u672c' },
+  ];
+  const scene = buildScene(data, DEFAULT_CONFIG, DEFAULT_EXTENSIONS);
+  const font = LoadedFont.parse(vendoredKalamBytes());
+  const { ctx, calls } = recordingContext();
+  drawLabels(ctx, scene, DEFAULT_CONFIG, DEFAULT_EXTENSIONS, { node: font, branch: font }, { nodeFontFamily: '"kalam", cursive' });
+
+  it('WHEN labels are drawn THEN the node label is drawn with fillText so every character shows', () => {
+    expect(calls.filter((c) => c.method === 'fillText').map((c) => c.args[0])).toEqual(['\u65e5\u672c']);
+  });
+
+  it('WHEN labels are drawn THEN only the root label is inked from outlines: the CJK branch label is skipped', () => {
+    expect(calls.filter((c) => c.method === 'fill')).toHaveLength(1);
   });
 });

@@ -13,6 +13,7 @@ export class CssFontFaces {
   private readonly families = new WeakMap<LoadedFont, string>();
   private readonly faces: FontFace[] = [];
   private registered = 0;
+  private disposed = false;
 
   constructor(
     private readonly document: Document,
@@ -26,8 +27,12 @@ export class CssFontFaces {
     return `"${this.register(font)}", ${FALLBACK_FAMILY}`;
   }
 
-  /** Unregisters every face this instance added, so remounting does not pile them up on the document. */
+  /**
+   * Unregisters every face this instance added, so remounting does not pile them up on the document, and stops
+   * `onFontReady`: a load still settling must not repaint a destroyed mount.
+   */
   dispose(): void {
+    this.disposed = true;
     for (const face of this.faces) this.document.fonts.delete(face);
     this.faces.length = 0;
   }
@@ -43,7 +48,9 @@ export class CssFontFaces {
     // Bytes are local, so this settles almost at once; a font the browser cannot use just leaves the fallback.
     face
       .load()
-      .then(() => this.onFontReady())
+      .then(() => {
+        if (!this.disposed) this.onFontReady();
+      })
       .catch((error: unknown) => console.warn('natural-mindmap: label font unusable for DOM text', { error }));
     this.families.set(font, family);
     return family;
