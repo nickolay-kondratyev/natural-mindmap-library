@@ -6,6 +6,8 @@ import { HostSimulationControls } from './host/HostSimulationControls';
 import { useDemoHost } from './host/demoHost';
 import { describeNodeClick } from './host/nodeClickReadout';
 import { MapControls } from './MapControls';
+import { headingMapData } from './markdown/headingMap';
+import { PasteMarkdownControls } from './markdown/PasteMarkdownControls';
 import { LocalStorageSettings } from './settings/localStorageSettings';
 import { SettingsPanel } from './settings/SettingsPanel';
 import { usePersistedConfig } from './settings/usePersistedConfig';
@@ -57,6 +59,7 @@ export function App() {
           onResetMap={host.resetMap}
           lastNodeClick={lastNodeClick === null ? null : describeNodeClick(lastNodeClick, host.data)}
         />
+        <PasteMarkdownControls onShowHeadings={(markdown) => host.replaceMap(headingMapData(markdown))} />
         <HostSimulationControls settings={host.simulation} onChange={host.setSimulation} editStatus={host.editStatus} />
         <SettingsPanel config={config} onChange={updateConfig} />
       </aside>

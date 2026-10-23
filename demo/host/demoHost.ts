@@ -27,19 +27,22 @@ export function describeDelay(delayMs: number): string {
 export interface DemoHost {
   /** Host-owned data (spec L2); the map renders exactly this. */
   readonly data: MindmapData;
-  /** Changes on "Reset map" so the map remounts: clears dragged positions, the view and any shown rejection. */
+  /** Changes whenever the map is replaced, so it remounts: clears dragged positions, the view and any shown rejection. */
   readonly mapKey: number;
   readonly editStatus: EditStatus;
   readonly simulation: HostSimulationSettings;
   setSimulation(settings: HostSimulationSettings): void;
   readonly onEditRequest: EditHandler;
   onEditStatusChange(status: EditStatus): void;
+  /** "Reset map" (D6): back to the reference data. */
   resetMap(): void;
+  /** Shows other data as a fresh map, e.g. the headings of pasted Markdown (D7). */
+  replaceMap(data: MindmapData): void;
 }
 
 /**
  * Forwards edit requests to `handler` and reports the confirmed data, except answers to requests sent before the
- * latest `discardPending()` ("Reset map", D6): those must not overwrite the reset data.
+ * latest `discardPending()` (the map was replaced, D6/D7): those must not overwrite the new data.
  */
 export class ResettableEditHandler {
   private generation = 0;
@@ -82,12 +85,26 @@ export function useDemoHost(): DemoHost {
     [host],
   );
 
-  const resetMap = useCallback(() => {
-    edits.discardPending();
-    setData(REFERENCE_DATA);
-    setEditStatus(IDLE);
-    setMapKey((key) => key + 1);
-  }, [edits]);
+  const replaceMap = useCallback(
+    (next: MindmapData) => {
+      edits.discardPending();
+      setData(next);
+      setEditStatus(IDLE);
+      setMapKey((key) => key + 1);
+    },
+    [edits],
+  );
+  const resetMap = useCallback(() => replaceMap(REFERENCE_DATA), [replaceMap]);
 
-  return { data, mapKey, editStatus, simulation, setSimulation, onEditRequest: edits.handle, onEditStatusChange: setEditStatus, resetMap };
+  return {
+    data,
+    mapKey,
+    editStatus,
+    simulation,
+    setSimulation,
+    onEditRequest: edits.handle,
+    onEditStatusChange: setEditStatus,
+    resetMap,
+    replaceMap,
+  };
 }

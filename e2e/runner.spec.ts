@@ -1,11 +1,16 @@
 import type { Page } from '@playwright/test';
 import { SETTINGS_STORAGE_KEY } from '../demo/settings/localStorageSettings';
-import { nodeBox, renameByDoubleClick, textOf } from './demoPage';
+import { hostData, nodeBox, renameByDoubleClick, textOf } from './demoPage';
 import { expect, test } from './fixtures';
 
 const ROOT_WIDTH_SETTING = 'setting:node.rootSize.width';
 const WIDER_ROOT_PX = '300';
 const HOST_DELAY_MS = '1000';
+const PASTED_NOTE = ['Intro text is not a heading.', '# Trip to Rome', '## Flights', '```', '# not a heading', '```', '### Return'].join('\n');
+
+async function mapLabels(page: Page): Promise<string[]> {
+  return (await hostData(page)).map((node) => node.text);
+}
 
 async function rootWidth(page: Page): Promise<number> {
   return (await nodeBox(page, 'root')).size.width;
@@ -50,5 +55,11 @@ test.describe('demo runner (spec §6a)', () => {
     await expect.poll(() => textOf(page, 'hamlet')).toBe('Ophelia');
     await page.getByRole('button', { name: 'Reset map' }).click();
     await expect.poll(() => textOf(page, 'hamlet')).toBe('Hamlet');
+  });
+
+  test('GIVEN pasted Markdown WHEN "Show headings as map" is clicked THEN the map shows its headings (D7)', async ({ page }) => {
+    await page.getByLabel('Markdown note').fill(PASTED_NOTE);
+    await page.getByRole('button', { name: 'Show headings as map' }).click();
+    await expect.poll(() => mapLabels(page)).toEqual(['Trip to Rome', 'Flights', 'Return']);
   });
 });
