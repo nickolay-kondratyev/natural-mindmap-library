@@ -2,11 +2,12 @@
 profile: standard
 id: nid_bjzc14tu7h3d3fjknqyfk17r5_e
 title: "Demo Paste Markdown mode and v0.2.0 release (docs, spec, git tag)"
-status: open
+status: in_progress
+pwd: /home/nickolaykondratyev/git_repos/nickolay-kondratyev_natural-mindmap-library/.worktree/t-bjzc14tu
 deps: [nid_gbj85a2pad7yofsjnf7ng26ff_e, nid_t5ydqj1ar6fdjksdps0sk2e0g_e, nid_idiv2268vh6mpy2gbnkrjlgw6_e, nid_z8ks1fhjsspq9jgdh0mxtv4sm_e]
 links: []
 created_iso: 2026-10-23T20:13:10Z
-status_updated_iso: 2026-10-23T20:13:10Z
+status_updated_iso: 2026-10-23T20:41:22Z
 type: task
 priority: 2
 assignee: CC_WITH-nickolaykondratyev
