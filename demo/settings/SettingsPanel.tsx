@@ -11,13 +11,14 @@ const OPEN_BY_DEFAULT: ReadonlySet<SettingSection['key']> = new Set(['node', 'br
 
 interface SettingsPanelProps {
   readonly config: MindmapConfig;
-  readonly onChange: (config: MindmapConfig) => void;
+  /** Takes an updater, not a value, so two changes in one tick both apply (no stale `config` closure). */
+  readonly onChange: (update: (config: MindmapConfig) => MindmapConfig) => void;
 }
 
 /** Live controls for every config setting plus reset to defaults (spec D3). */
 export function SettingsPanel({ config, onChange }: SettingsPanelProps) {
   const resetButton = (
-    <button type="button" className="button button--small" disabled={config === DEFAULT_CONFIG} onClick={() => onChange(DEFAULT_CONFIG)}>
+    <button type="button" className="button button--small" disabled={config === DEFAULT_CONFIG} onClick={() => onChange(() => DEFAULT_CONFIG)}>
       Reset settings
     </button>
   );
@@ -37,7 +38,7 @@ export function SettingsPanel({ config, onChange }: SettingsPanelProps) {
                     field={field}
                     value={value}
                     changed={value !== valueAt(DEFAULT_CONFIG, field.path)}
-                    onChange={(next) => onChange(withValueAt(config, field.path, next))}
+                    onChange={(next) => onChange((current) => withValueAt(current, field.path, next))}
                   />
                 );
               })}
