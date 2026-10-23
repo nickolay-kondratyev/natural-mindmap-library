@@ -1,16 +1,17 @@
 ---
 id: nid_djtlbgb2q5iipx2go9fy2eogc_e
 title: "Bilateral layout pipeline (tidy tree, root bow, hand-drawn jitter, collision)"
-status: open
+status: in_progress
 deps: [nid_spbntjy1m5mjtuzwhraxzd8h1_e]
 links: []
 created_iso: 2026-10-22T23:56:09Z
-status_updated_iso: 2026-10-22T23:56:09Z
+status_updated_iso: 2026-10-23T00:16:44Z
 type: task
 parent: nid_hc65067veoxpca8wtir8bnj2e_e
 priority: 2
 assignee: CC_WITH-nickolaykondratyev
 tags: [mindmap-v1]
+pwd: /home/nickolaykondratyev/git_repos/nickolay-kondratyev_natural-mindmap-library/.worktree/t-djtlbgb2
 ---
 ## Goal
 Produce the bilateral, hand-drawn-feeling auto layout as a pure, pluggable pipeline so the reference map spreads like §8 "Spread".

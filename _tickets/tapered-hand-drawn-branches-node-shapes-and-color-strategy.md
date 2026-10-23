@@ -1,16 +1,17 @@
 ---
 id: nid_u8rb9nyllrir2j6ditgfhu7uo_e
 title: "Tapered hand-drawn branches, node shapes and color strategy"
-status: open
+status: in_progress
 deps: [nid_spbntjy1m5mjtuzwhraxzd8h1_e]
 links: []
 created_iso: 2026-10-22T23:56:09Z
-status_updated_iso: 2026-10-22T23:56:09Z
+status_updated_iso: 2026-10-23T00:16:45Z
 type: task
 parent: nid_hc65067veoxpca8wtir8bnj2e_e
 priority: 2
 assignee: CC_WITH-nickolaykondratyev
 tags: [mindmap-v1]
+pwd: /home/nickolaykondratyev/git_repos/nickolay-kondratyev_natural-mindmap-library/.worktree/t-u8rb9nyl
 profile: higher
 ---
 ## Goal
