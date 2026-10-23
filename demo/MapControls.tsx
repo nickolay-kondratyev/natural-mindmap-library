@@ -1,11 +1,19 @@
 import type { MindmapApi } from 'natural-mindmap/react';
 import { PanelSection } from './PanelSection';
 
-/** View buttons (spec I1, via the public `MindmapApi`), "Reset map" (D6) and how to edit on the canvas (D4). */
-export function MapControls({ api, onResetMap }: { readonly api: () => MindmapApi | null; readonly onResetMap: () => void }) {
+interface MapControlsProps {
+  readonly api: () => MindmapApi | null;
+  readonly onResetMap: () => void;
+  /** Readout of the last node click (`onNodeClick`), `null` before the first. */
+  readonly lastNodeClick: string | null;
+}
+
+/** View buttons (spec I1, via the public `MindmapApi`), "Reset map" (D6), how to edit on the canvas (D4), the last node click. */
+export function MapControls({ api, onResetMap, lastNodeClick }: MapControlsProps) {
   return (
     <PanelSection title="Map">
       <ul className="hint-list">
+        <li>Click a node to highlight it; the host is told which node and which keys were held.</li>
         <li>Hover a node, then click its <kbd>+</kbd> to add a child.</li>
         <li>Double-click a node to rename it.</li>
         <li>Drag a node onto another node to make it a child there (you are asked first); drop it on empty space to just reposition it.</li>
@@ -19,6 +27,9 @@ export function MapControls({ api, onResetMap }: { readonly api: () => MindmapAp
           Reset map
         </button>
       </div>
+      <p className="node-click" role="status" data-testid="node-click">
+        {lastNodeClick === null ? 'No node clicked yet.' : `Last clicked: ${lastNodeClick}`}
+      </p>
     </PanelSection>
   );
 }
