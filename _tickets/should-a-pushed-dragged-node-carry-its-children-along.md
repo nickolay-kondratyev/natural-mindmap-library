@@ -1,15 +1,16 @@
 ---
+closed_iso: 2026-10-23T16:55:07Z
 id: nid_4wj5flmx2zkrfeoiscr3sssdf_e
 title: "Should a pushed dragged node carry its children along?"
-status: open
+status: closed
 deps: []
 links: []
 created_iso: 2026-10-23T16:40:21Z
-status_updated_iso: 2026-10-23T16:40:21Z
+status_updated_iso: 2026-10-23T16:55:07Z
 type: task
 priority: 2
 assignee: CC_WITH-nickolaykondratyev
-tags: [decide, need-human]
+tags: []
 ---
 
 
@@ -26,3 +27,6 @@ Only the pushed node itself moves; its children stay where they are, and nodes i
 
 ## Recommendation
 (a) for now. If you want it fixed, (b) is the Pareto pick.
+
+## Decision (2026-10-23, human)
+(a) Leave it as is. A pushed dragged node moves alone; its children stay where they are. Reopen (consider option (b)) if the parent-over-own-child overlap shows up in real use.
