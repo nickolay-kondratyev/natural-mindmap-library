@@ -89,6 +89,20 @@ describe('GIVEN a pinned non-root node overlapped by a free one', () => {
   });
 });
 
+describe('GIVEN two pinned nodes overlapping each other', () => {
+  const bothPinned: CollisionInput = { ...input, pinnedIds: new Set(['a', 'b']) };
+  const overlapping = new Map<NodeId, Point>([
+    ['root', { x: 0, y: 0 }],
+    ['a', { x: 300, y: 0 }],
+    ['b', { x: 305, y: 5 }],
+  ]);
+
+  it('WHEN resolved THEN neither pinned node moves', () => {
+    const resolved = resolveCollisions(overlapping, bothPinned);
+    expect([resolved.get('a'), resolved.get('b')]).toEqual([overlapping.get('a'), overlapping.get('b')]);
+  });
+});
+
 describe('GIVEN the collision stage in a layout context', () => {
   it('WHEN run THEN it pushes overlapping nodes apart with the configured padding', () => {
     const context = {

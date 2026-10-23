@@ -15,14 +15,15 @@ export const rootBowStage: LayoutStage = {
     const result = new Map<NodeId, Point>(positions);
     const firstLevel = tree.childrenOf(tree.root.id);
     const rootY = requirePosition(positions, tree.root.id).y;
-    const farthestBySide = new Map<Side, number>();
+    // Keyed by `sideOf` as-is: first-level nodes always have a side, so `null` never occurs in practice.
+    const farthestBySide = new Map<Side | null, number>();
     for (const node of firstLevel) {
-      const side = tree.sideOf(node.id) as Side;
+      const side = tree.sideOf(node.id);
       const distance = Math.abs(requirePosition(positions, node.id).y - rootY);
       farthestBySide.set(side, Math.max(farthestBySide.get(side) ?? 0, distance));
     }
     for (const node of firstLevel) {
-      const farthest = farthestBySide.get(tree.sideOf(node.id) as Side) ?? 0;
+      const farthest = farthestBySide.get(tree.sideOf(node.id)) ?? 0;
       const distance = Math.abs(requirePosition(positions, node.id).y - rootY);
       // A side whose only nodes are level with the root has nothing to bow (and would divide by zero).
       const normalized = farthest === 0 ? 0 : distance / farthest;
