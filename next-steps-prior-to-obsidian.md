@@ -37,6 +37,27 @@ Good news: tidy tree and collision are cheap enough up to ~1,000 nodes, and buil
 the flat data is cheap. **Cost follows the number of visible nodes, not the size of the data**, so collapse
 plus fast routing covers large vaults without lazy loading.
 
+## Library work for the first launch (heading map + move)
+
+Only this blocks the first launch. Everything else in Phase 0 is for the folder map or later.
+
+| # | Item | Why the heading launch needs it |
+|---|---|---|
+| 1 | Scene cache (0.1) | ~50 headings already cost ~20 ms per paint, so hover and pan stutter |
+| 2 | Faster branch routing (0.1) | long notes (100+ headings) |
+| 3 | `onNodeActivate` (0.2) | click jumps to the heading |
+| 4 | `setHighlighted` + `revealNode` (0.2) | heading under the cursor is shown on the map (could be cut from the launch) |
+| 5 | Turn off add / rename / delete (0.2) | the launch has move only. A global config switch is enough for now; per-node rules wait for the folder map |
+| 6 | "Clockwise" side order (Phase 1) | the map reads in document order instead of zigzag |
+| 7 | Long labels: minimum size, then "…" (0.5) | headings are often long |
+| 8 | "Paste Markdown" in the demo (0.7) | tune the heading map without Obsidian |
+| 9 | Git tag the library (0.8) | the plugin repo can depend on it |
+
+Not needed for the launch: collapse, drawing only what's on screen, less detail when zoomed out, the
+right-click hook, saved positions (dragged spots reset when the note reopens), several maps at once,
+the settings screen, and touch. Two depend on your notes: the light theme (only if you use Obsidian in light
+mode) and fallback fonts (only if your headings contain emoji or non-Latin text, see decision 10).
+
 ## Phase 0: library work (this repo)
 
 ### 0.1 Speed (blocking for both modes)
@@ -209,3 +230,5 @@ Until each one ships, the plugin turns it off with the per-node rules (0.2), so 
 8. **First-level side order for headings:** recommend adding the "clockwise" option and using it in heading mode.
 9. **Reorder siblings in the first launch?** Recommend no: ship move (change parent) first, then add reorder
    as the next step (an optional position on `move`, plus dropping between two siblings).
+10. **Do your headings use emoji or non-Latin text** (e.g. Cyrillic)? If yes, fallback fonts join the first
+    launch; if not, they wait.
