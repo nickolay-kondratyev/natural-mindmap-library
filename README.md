@@ -19,6 +19,20 @@ resolves with the host's updated data (rendered as-is) or rejects with a plain-l
 in-memory host confirms immediately. Pan/zoom is library-local: `getView`/`setView`/`zoomIn`/`zoomOut`/`resetView`
 on the handle (or the `<Mindmap ref>`), user changes reported via `onViewChange`.
 
+## Demo runner
+
+```bash
+npm install
+npm run dev         # open http://localhost:5173
+```
+
+Starts on the Shakespeare reference map with default settings. The side panel has:
+- **Map**: zoom / fit buttons, "Reset map" back to the reference data. Edit on the canvas: hover a node for `+` (add
+  child) and `×` (delete), double-click to rename, drag onto another node to move it.
+- **Host simulation**: make the in-memory host answer slowly or reject every change, to see pending and rejected edits.
+- **Settings**: live controls for every config value (colors, node size incl. the depth scale, branches, text and
+  fonts, layout) and "Reset settings".
+
 ## Develop
 
 ```bash
