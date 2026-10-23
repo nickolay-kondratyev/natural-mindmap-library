@@ -12,8 +12,8 @@ import { drawInteractionOverlay } from '../render/interactionOverlay';
 import { nodeLabelInk } from '../render/labelRenderer';
 import { buildScene, type Scene } from '../render/scene';
 import type { NodeBox } from '../shape/nodeShape';
-import { CssFontFaces } from '../text/cssFontFaces';
 import type { LabelFonts } from '../text/labelFontLoader';
+import type { LoadedFont } from '../text/loadedFont';
 import type { ViewController } from '../view/viewController';
 import { nodeAt, nodeBoxOf, nodeHandles, pointerTargetAt, sameHandle, type NodeHandle, type PointerTarget } from './hitTest';
 import { InlineLabelEditor, type LabelEditorPlacement } from './inlineLabelEditor';
@@ -32,6 +32,8 @@ export interface InteractionHost {
   config(): MindmapConfig;
   extensions(): MindmapExtensions;
   fonts(): LabelFonts;
+  /** CSS `font-family` for DOM text in `font` (the inline editor); see `CssFontFaces`. */
+  cssFontFamily(font: LoadedFont | null): string;
   requestRepaint(): void;
   onNodeReposition(event: NodeRepositionEvent): void;
   /** The user changed a setting from inside the map (e.g. "Don't ask again"); the mount applies and reports it. */
@@ -75,7 +77,6 @@ export class CanvasInteractions {
   private readonly notice: NoticeBanner;
   private readonly reparent: ReparentConfirmation;
   private readonly reparentDialog: ReparentDialog;
-  private readonly cssFonts: CssFontFaces;
   private readonly removeListeners: (() => void)[] = [];
   /** Last painted scene: what the user sees, so it is what pointer events hit-test against. */
   private painted: Scene | null = null;
@@ -91,7 +92,6 @@ export class CanvasInteractions {
     const { canvas } = host;
     this.editor = new InlineLabelEditor(canvas);
     this.notice = new NoticeBanner(canvas, () => host.edits.clearRejection());
-    this.cssFonts = new CssFontFaces(canvas.ownerDocument);
     this.local = new LocalEditState(host.edits);
     this.reparentDialog = new ReparentDialog(canvas);
     this.reparent = new ReparentConfirmation({
@@ -163,7 +163,6 @@ export class CanvasInteractions {
     this.editor.dispose();
     this.notice.dispose();
     this.reparentDialog.dispose();
-    this.cssFonts.dispose();
   }
 
   // ---- pointer events ----
@@ -356,7 +355,7 @@ export class CanvasInteractions {
       center: this.host.view.sceneToScreen(box.center),
       width: box.size.width * EDITOR_WIDTH_FRACTION * zoom,
       fontSizePx: style.sizePx * zoom,
-      fontFamily: this.cssFonts.familyFor(this.host.fonts().node),
+      fontFamily: this.host.cssFontFamily(this.host.fonts().node),
       bold: nodeLabelInk(config, isRoot).bold,
       letterSpacingEm: style.letterSpacingEm,
       color: nodeLabelInk(config, isRoot).fill,

@@ -10,18 +10,30 @@ import { paintLabel, type LabelInk } from '../text/labelPainter';
 import type { LabelFonts } from '../text/labelFontLoader';
 import type { LoadedFont, ShapedText } from '../text/loadedFont';
 import { rimToRimSpan } from '../text/rimSpan';
+import { paintSystemTextLabel } from '../text/systemTextLabel';
 import type { Scene } from './scene';
 
 /** Share of the node width a straight label may use, keeping glyphs clear of the curved rim. */
 const NODE_LABEL_WIDTH_FRACTION = 0.8;
 
-/** Draws node labels (spec R2, R3) and the same labels along their incoming branches (spec R12-R16). */
+/** System-font fallback for labels the glyph font cannot cover (spec R17 exception; see docs "Labels"). */
+export interface LabelFallback {
+  /** CSS `font-family` list starting with the node label font (`CssFontFaces.familyFor`), then system fonts. */
+  readonly nodeFontFamily: string;
+}
+
+/**
+ * Draws node labels (spec R2, R3) and the same labels along their incoming branches (spec R12-R16). A label with
+ * characters its font lacks (`LoadedFont.coversText`) is not drawn on its branch and is drawn on its node with
+ * system-font fallback, so every character shows and no empty boxes appear.
+ */
 export function drawLabels(
   ctx: CanvasRenderingContext2D,
   scene: Scene,
   config: MindmapConfig,
   extensions: MindmapExtensions,
   fonts: LabelFonts,
+  fallback: LabelFallback,
 ): void {
   if (fonts.branch !== null) {
     for (const branch of scene.branches) drawBranchLabel(ctx, scene, config, extensions, fonts.branch, branch);
@@ -30,7 +42,7 @@ export function drawLabels(
     for (const node of scene.tree.nodes) {
       const box = boxOf(scene, node.id);
       if (box === null) continue;
-      drawNodeLabel(ctx, config, fonts.node, node.text, box, node.parentId === null);
+      drawNodeLabel(ctx, config, fonts.node, fallback, node.text, box, node.parentId === null);
     }
   }
 }
@@ -39,12 +51,18 @@ function drawNodeLabel(
   ctx: CanvasRenderingContext2D,
   config: MindmapConfig,
   font: LoadedFont,
+  fallback: LabelFallback,
   text: string,
   box: NodeBox,
   isRoot: boolean,
 ): void {
   const style = config.text.node;
   const maxWidthPx = box.size.width * NODE_LABEL_WIDTH_FRACTION;
+  if (!font.coversText(text)) {
+    const systemStyle = { family: fallback.nodeFontFamily, sizePx: style.sizePx, letterSpacingEm: style.letterSpacingEm };
+    paintSystemTextLabel(ctx, text, box.center, maxWidthPx, systemStyle, nodeLabelInk(config, isRoot), config.text.nodeFit);
+    return;
+  }
   const full = font.shape(text);
   const ellipsis = font.shape(ELLIPSIS);
   const runOf = (shaped: ShapedText): GlyphRun => new GlyphRun(shaped.advancesEm, style.stretch);
@@ -71,7 +89,9 @@ function drawBranchLabel(
   branch: Branch,
 ): void {
   const style = config.text.branch;
-  const shaped = font.shape(scene.tree.nodeById(branch.childId).text);
+  const text = scene.tree.nodeById(branch.childId).text;
+  if (!font.coversText(text)) return;
+  const shaped = font.shape(text);
   const run = new GlyphRun(shaped.advancesEm, style.stretch);
   const layout = layoutSceneBranchLabel(scene, config, extensions, run, branch);
   if (layout === null) return;
