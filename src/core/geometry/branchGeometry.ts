@@ -41,12 +41,13 @@ export function buildBranches(input: BranchGeometryInput): readonly Branch[] {
     const children = tree.childrenOf(parent.id);
     if (children.length === 0) continue;
     const parentCenter = positionOf(input.positions, parent.id);
+    const fork = forkDistance(parentCenter, children, input.positions);
     for (const child of children) {
       const childCenter = positionOf(input.positions, child.id);
       routable.push({
         parentId: parent.id,
         childId: child.id,
-        controls: controlPoints(parentCenter, childCenter, forkDistance(parentCenter, children, input.positions)),
+        controls: controlPoints(parentCenter, childCenter, fork),
         width: widthAtDepth(tree.depthOf(child.id), input.config),
       });
     }
