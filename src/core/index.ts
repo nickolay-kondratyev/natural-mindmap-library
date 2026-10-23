@@ -15,11 +15,13 @@ export {
   type PartialMindmapConfig,
   type TextConfig,
 } from './config/config';
+export { restoreConfig } from './config/restoreConfig';
+export { SettingsPersistence, type SettingsStorage } from './config/settingsPersistence';
 export { DEFAULT_THEME, type PaletteColor, type RootColor, type ThemeColorConfig, type ThemeConfig } from './config/theme';
 
 export { DEFAULT_EXTENSIONS, resolveExtensions, type MindmapExtensions } from './extensions';
 
-export { DEFAULT_LAYOUT_CONFIG, type BilateralLayoutConfig, type LayoutConfig } from './layout/layoutConfig';
+export { DEFAULT_LAYOUT_CONFIG, isLayoutType, LAYOUT_TYPES, type BilateralLayoutConfig, type LayoutConfig } from './layout/layoutConfig';
 export type { LayoutContext, LayoutStage, NodePositions } from './layout/layoutTypes';
 export { goldenRatioBowCurve, type BowCurve } from './layout/bowCurve';
 export { defaultLayoutStages, runLayoutPipeline } from './layout/pipeline';

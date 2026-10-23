@@ -1,4 +1,4 @@
-import type { LayoutConfig, MindmapConfig } from 'natural-mindmap';
+import { LAYOUT_TYPES, type MindmapConfig } from 'natural-mindmap';
 import type { LeafPathOf } from './configPath';
 
 /** Slider bounds for one numeric setting; `hint` is shown under the control when the label alone is not enough. */
@@ -55,9 +55,6 @@ export const NUMBER_RANGES: Readonly<Record<NumberSettingPath, NumberRange>> = {
   'layout.jitterAmplitude': { min: 0, max: 30, step: 0.5, hint: 'Hand-drawn wobble of node positions; 0 is exact.' },
   'layout.collisionPadding': { min: 0, max: 60, step: 1, hint: 'Minimum space kept between nodes.' },
 };
-
-/** Every layout `type`; the config union cannot be listed at runtime, so it is mirrored here. */
-const LAYOUT_TYPES: readonly LayoutConfig['type'][] = ['bilateral'];
 
 /** String settings that are a fixed set of options rather than free text. */
 export const STRING_CHOICES: Readonly<Partial<Record<LeafPathOf<MindmapConfig, string>, readonly string[]>>> = {
