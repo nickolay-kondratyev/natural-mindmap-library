@@ -15,6 +15,8 @@ export interface ThemeColorConfig {
   readonly root: RootColor;
   readonly nodeText: string;
   readonly branchText: string;
+  /** Glyph outline color for labels with `outlineWidthPx > 0`. */
+  readonly textOutline: string;
   /** Ordered so neighbouring first-level branches contrast strongly (spec R11). */
   readonly palette: readonly PaletteColor[];
 }
@@ -30,6 +32,7 @@ export const DEFAULT_THEME: ThemeConfig = {
     root: { fill: '#2f3542', outline: '#57606f', text: '#ffffff' },
     nodeText: '#ffffff',
     branchText: '#ffffff',
+    textOutline: 'rgba(11, 16, 32, 0.55)',
     palette: [
       { fill: '#d4a53a', outline: '#9a7420' }, // goldenrod
       { fill: '#6495ed', outline: '#3f66b3' }, // cornflower blue

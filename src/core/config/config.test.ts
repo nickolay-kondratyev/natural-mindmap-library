@@ -25,3 +25,11 @@ describe('resolveConfig', () => {
     expect(resolveConfig({ layout: { type: 'bilateral', horizontalGap: 5 } }).layout.type).toBe('bilateral');
   });
 });
+
+describe('resolveConfig text fonts', () => {
+  it('GIVEN only a branch font override WHEN resolving THEN the node font keeps its default', () => {
+    expect(resolveConfig({ text: { branch: { url: 'https://fonts.test/other.ttf' } } }).text.node.url).toBe(
+      DEFAULT_CONFIG.text.node.url,
+    );
+  });
+});

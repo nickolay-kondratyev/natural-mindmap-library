@@ -1,7 +1,8 @@
 import type { MindmapConfig } from '../config/config';
 import type { MindmapExtensions } from '../extensions';
 import { taperedOutline, type BranchOutline } from '../geometry/taperedOutline';
-import type { Point } from '../model/node';
+import type { LabelFonts } from '../text/labelFontLoader';
+import { drawLabels } from './labelRenderer';
 import type { Scene } from './scene';
 import type { MindmapView } from '../view/viewController';
 
@@ -13,11 +14,10 @@ export interface Viewport {
 }
 
 const NODE_OUTLINE_WIDTH_PX = 2;
-const PLACEHOLDER_FONT_FAMILY = 'sans-serif';
 
 /**
- * Draws a scene: background, filled tapered limbs under nodes (spec R5, R9), node shapes, labels.
- * `fillText` labels are a scaffold placeholder; the font ticket replaces them with glyph outlines (R17).
+ * Draws a scene: background, filled tapered limbs under nodes (spec R5, R9), node shapes, then glyph-outline
+ * labels (R17).
  */
 export function drawScene(
   ctx: CanvasRenderingContext2D,
@@ -26,6 +26,7 @@ export function drawScene(
   extensions: MindmapExtensions,
   viewport: Viewport,
   view: MindmapView,
+  fonts: LabelFonts,
 ): void {
   ctx.setTransform(viewport.devicePixelRatio, 0, 0, viewport.devicePixelRatio, 0, 0);
   ctx.fillStyle = config.theme.color.background;
@@ -49,8 +50,9 @@ export function drawScene(
     const color = scene.colors.get(node.id);
     if (center === undefined || size === undefined || color === undefined) continue;
     extensions.nodeShape.draw(ctx, { center, size }, { ...color, outlineWidth: NODE_OUTLINE_WIDTH_PX });
-    drawPlaceholderLabel(ctx, node.text, center, node.parentId === null, config);
   }
+
+  drawLabels(ctx, scene, config, extensions, fonts);
 }
 
 function fillOutline(ctx: CanvasRenderingContext2D, outline: BranchOutline, fill: string): void {
@@ -62,19 +64,4 @@ function fillOutline(ctx: CanvasRenderingContext2D, outline: BranchOutline, fill
   ctx.closePath();
   ctx.fillStyle = fill;
   ctx.fill();
-}
-
-function drawPlaceholderLabel(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  center: Point,
-  isRoot: boolean,
-  config: MindmapConfig,
-): void {
-  const weight = isRoot ? 'bold' : 'normal';
-  ctx.font = `${weight} ${config.text.node.sizePx}px ${PLACEHOLDER_FONT_FAMILY}`;
-  ctx.fillStyle = isRoot ? config.theme.color.root.text : config.theme.color.nodeText;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, center.x, center.y);
 }

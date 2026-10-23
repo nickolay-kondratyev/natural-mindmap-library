@@ -4,6 +4,8 @@ import {
   mountMindmap,
   type EditHandler,
   type EditStatus,
+  type FontFetcher,
+  type LabelFontStatus,
   type MindmapData,
   type MindmapExtensions,
   type MindmapHandle,
@@ -16,6 +18,10 @@ export interface MindmapProps {
   readonly data: MindmapData;
   readonly config?: PartialMindmapConfig;
   readonly extensions?: Partial<MindmapExtensions>;
+  /** Read once at mount (see `MountOptions.fontFetcher`). */
+  readonly fontFetcher?: FontFetcher;
+  /** Font loading status (spec L6), e.g. to show a loading state. */
+  readonly onFontStatusChange?: (status: LabelFontStatus) => void;
   readonly className?: string;
   readonly style?: CSSProperties;
   /** Host side of the edit protocol (spec I5); defaults to the in-memory host that confirms immediately (I6). */
@@ -32,7 +38,7 @@ export type MindmapApi = Pick<
   'requestEdit' | 'getEditStatus' | 'clearEditRejection' | 'getView' | 'setView' | 'zoomIn' | 'zoomOut' | 'resetView'
 >;
 
-type CallbackProp = 'onEditRequest' | 'onEditStatusChange' | 'onViewChange' | 'onNodeReposition';
+type CallbackProp = 'onEditRequest' | 'onEditStatusChange' | 'onViewChange' | 'onNodeReposition' | 'onFontStatusChange';
 /** Every callback key present (possibly `undefined`), so the latest props can be copied in one assignment. */
 type MindmapCallbacks = { readonly [K in CallbackProp]: MindmapProps[K] };
 
@@ -43,13 +49,25 @@ const FILL_PARENT: CSSProperties = { display: 'block', width: '100%', height: '1
  * canvas backing store in sync with its CSS size and device pixel ratio.
  */
 export const Mindmap = forwardRef<MindmapApi, MindmapProps>(function Mindmap(
-  { data, config, extensions, className, style, onEditRequest, onEditStatusChange, onViewChange, onNodeReposition },
+  {
+    data,
+    config,
+    extensions,
+    fontFetcher,
+    className,
+    style,
+    onEditRequest,
+    onEditStatusChange,
+    onViewChange,
+    onNodeReposition,
+    onFontStatusChange,
+  },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const handleRef = useRef<MindmapHandle | null>(null);
   // The core is mounted once, so it reads callbacks through this ref to always call the latest props.
-  const callbacks: MindmapCallbacks = { onEditRequest, onEditStatusChange, onViewChange, onNodeReposition };
+  const callbacks: MindmapCallbacks = { onEditRequest, onEditStatusChange, onViewChange, onNodeReposition, onFontStatusChange };
   const callbacksRef = useRef(callbacks);
   useLayoutEffect(() => {
     callbacksRef.current = callbacks;
@@ -63,10 +81,12 @@ export const Mindmap = forwardRef<MindmapApi, MindmapProps>(function Mindmap(
       data,
       config: config ?? {},
       extensions: extensions ?? {},
+      ...(fontFetcher === undefined ? {} : { fontFetcher }),
       onEditRequest: (request, currentData) => (callbacksRef.current.onEditRequest ?? DEFAULT_EDIT_HANDLER)(request, currentData),
       onEditStatusChange: (status) => callbacksRef.current.onEditStatusChange?.(status),
       onViewChange: (view) => callbacksRef.current.onViewChange?.(view),
       onNodeReposition: (event) => callbacksRef.current.onNodeReposition?.(event),
+      onFontStatusChange: (status) => callbacksRef.current.onFontStatusChange?.(status),
     });
     handleRef.current = handle;
     const syncSize = () => handle.resize(canvas.clientWidth, canvas.clientHeight, window.devicePixelRatio);
