@@ -1,16 +1,16 @@
 ---
+closed_iso: 2026-10-23T16:57:48Z
 id: nid_jwzqlvies2bizylbq7bhpieh4_e
 title: "settings storage plaggability"
-status: in_progress
+status: closed
 deps: []
 links: [nid_kkm4447dku0vlz0ry1zwr2v8k_e]
 created_iso: 2026-10-23T16:47:06Z
-status_updated_iso: 2026-10-23T16:49:58Z
+status_updated_iso: 2026-10-23T16:57:48Z
 type: task
 priority: 3
 assignee: nickolaykondratyev
 tags: []
-pwd: /home/nickolaykondratyev/git_repos/nickolay-kondratyev_natural-mindmap-library-mirror-1/.worktree/t-jwzqlvie
 ---
 
 I am thinking that this library should retain ability to store the settings between the sessions for different use cases.
