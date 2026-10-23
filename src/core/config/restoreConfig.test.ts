@@ -58,6 +58,11 @@ describe('restoreConfig', () => {
     expect(restoreConfig({ theme: { color: { palette } } }).theme.color.palette).toEqual(palette);
   });
 
+  it('GIVEN palette entries with keys the config does not have WHEN restoring THEN those keys are dropped', () => {
+    const palette = DEFAULT_PALETTE.map((color) => ({ ...color, glow: '#ffffff' }));
+    expect(restoreConfig({ theme: { color: { palette } } }).theme.color.palette).toEqual(DEFAULT_PALETTE);
+  });
+
   it('GIVEN a palette with a malformed entry WHEN restoring THEN the default palette is used', () => {
     const palette = DEFAULT_PALETTE.map((color, index) => (index === 1 ? { fill: color.fill } : color));
     expect(restoreConfig({ theme: { color: { palette } } }).theme.color.palette).toBe(DEFAULT_PALETTE);

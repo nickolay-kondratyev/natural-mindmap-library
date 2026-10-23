@@ -19,7 +19,10 @@ export function restoreConfig(stored: unknown): MindmapConfig {
 }
 
 function restoreValue(fallback: unknown, stored: unknown): unknown {
-  if (Array.isArray(fallback)) return isWellFormedArray(fallback, stored) ? stored : fallback;
+  if (Array.isArray(fallback)) {
+    // Entries go through `restoreValue` too, so keys the config does not have are dropped inside arrays as well.
+    return isWellFormedArray(fallback, stored) ? stored.map((entry, index) => restoreValue(fallback[index], entry)) : fallback;
+  }
   if (isPlainObject(fallback)) {
     if (!isPlainObject(stored)) return fallback;
     return Object.fromEntries(Object.entries(fallback).map(([key, value]) => [key, restoreValue(value, stored[key])]));
@@ -28,7 +31,7 @@ function restoreValue(fallback: unknown, stored: unknown): unknown {
 }
 
 /** Entries are checked against the default's entry at the same index (config arrays are uniform anyway). */
-function isWellFormedArray(fallback: readonly unknown[], stored: unknown): boolean {
+function isWellFormedArray(fallback: readonly unknown[], stored: unknown): stored is readonly unknown[] {
   return Array.isArray(stored) && stored.length === fallback.length && stored.every((entry, index) => conforms(fallback[index], entry));
 }
 
