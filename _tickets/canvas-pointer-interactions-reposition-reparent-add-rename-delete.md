@@ -1,17 +1,17 @@
 ---
+closed_iso: 2026-10-23T00:55:55Z
 id: nid_m9bylgyu4bb098rqygf91vtuo_e
 title: "Canvas pointer interactions: reposition, reparent, add, rename, delete"
-status: in_progress
+status: closed
 deps: [nid_djtlbgb2q5iipx2go9fy2eogc_e, nid_u8rb9nyllrir2j6ditgfhu7uo_e, nid_q5cs3lr79q1xa2ebtbny5exc9_e, nid_5suxnngcwzcabej2vgrnytvx4_e]
 links: []
 created_iso: 2026-10-22T23:56:09Z
-status_updated_iso: 2026-10-23T00:35:28Z
+status_updated_iso: 2026-10-23T00:55:55Z
 type: task
 parent: nid_hc65067veoxpca8wtir8bnj2e_e
 priority: 2
 assignee: CC_WITH-nickolaykondratyev
 tags: [mindmap-v1]
-pwd: /home/nickolaykondratyev/git_repos/nickolay-kondratyev_natural-mindmap-library/.worktree/t-m9bylgyu
 ---
 ## Goal
 Make the map directly manipulable on the canvas, driving the core protocol and view model from nid_5suxnngcwzcabej2vgrnytvx4_e: pan/zoom, drag-reposition with push-apart, drag-drop reparent, add child, inline rename, delete (I1–I4).
