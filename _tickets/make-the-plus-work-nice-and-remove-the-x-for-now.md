@@ -3,7 +3,7 @@ id: nid_gbj85a2pad7yofsjnf7ng26ff_e
 title: "Make the plus work nice and remove the X for now."
 status: open
 deps: []
-links: []
+links: [nid_rk795rjqzzksdjrhm03dy6s7l_e]
 created_iso: 2026-10-23T17:42:09Z
 status_updated_iso: 2026-10-23T17:42:09Z
 type: task
