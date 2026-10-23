@@ -1,13 +1,13 @@
 ---
+closed_iso: 2026-10-23T20:38:42Z
 profile: higher
 id: nid_z8ks1fhjsspq9jgdh0mxtv4sm_e
 title: "Heading-friendly layout and labels: clockwise side order, minimum label size with ellipsis, emoji and non-Latin fallback"
-status: in_progress
-pwd: /home/nickolaykondratyev/git_repos/nickolay-kondratyev_natural-mindmap-library/.worktree/t-z8ks1fhj
+status: closed
 deps: []
 links: []
 created_iso: 2026-10-23T20:13:10Z
-status_updated_iso: 2026-10-23T20:18:19Z
+status_updated_iso: 2026-10-23T20:38:42Z
 type: task
 priority: 2
 assignee: CC_WITH-nickolaykondratyev
