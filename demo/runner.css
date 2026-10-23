@@ -1,0 +1,322 @@
+/* Demo runner chrome only; the canvas-only reference page (reference.html) never loads this file. */
+:root {
+  --canvas-bg: #0b1020; /* matches the library's default theme background */
+  --panel-bg: hsl(226 38% 10%);
+  --raised-bg: hsl(226 30% 15%);
+  --raised-bg-hover: hsl(226 28% 19%);
+  --inset-bg: hsl(226 40% 7%);
+  --divider: hsl(226 24% 18%);
+  --text-1: hsl(225 30% 93%);
+  --text-2: hsl(225 16% 70%);
+  --text-3: hsl(225 12% 56%);
+  --accent: hsl(219 80% 68%);
+  --radius: 6px;
+  --panel-width: 340px;
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--canvas-bg);
+  color: var(--text-1);
+  font: 13px/1.45 system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+input[type='range'],
+input[type='checkbox'] {
+  accent-color: var(--accent);
+}
+
+/* Layout: fluid canvas, fixed-width side panel. */
+.runner {
+  display: flex;
+  height: 100%;
+}
+
+.runner__canvas {
+  position: relative; /* anchors the font badge and the library's overlays (editor, notice) */
+  flex: 1;
+  min-width: 0;
+}
+
+.runner__panel {
+  flex: none;
+  width: var(--panel-width);
+  overflow-y: auto;
+  padding: 16px 16px 32px;
+  box-sizing: border-box;
+  background: var(--panel-bg);
+  border-left: 1px solid var(--divider);
+}
+
+@media (max-width: 760px) {
+  .runner {
+    flex-direction: column;
+  }
+  .runner__canvas {
+    flex: 1 1 60%;
+    min-height: 0;
+  }
+  .runner__panel {
+    flex: 0 0 40%;
+    width: auto;
+    border-left: none;
+    border-top: 1px solid var(--divider);
+  }
+}
+
+.runner__header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.runner__header h1 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.runner__header p {
+  margin: 0;
+  color: var(--text-3);
+}
+
+/* Panel sections */
+.panel-section + .panel-section {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--divider);
+}
+
+.panel-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.panel-section__title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.hint-list {
+  margin: 0 0 12px;
+  padding-left: 18px;
+  color: var(--text-2);
+}
+
+.hint-list li + li {
+  margin-top: 4px;
+}
+
+kbd {
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--raised-bg);
+  color: var(--text-1);
+  font: inherit;
+}
+
+/* Buttons */
+.button-row {
+  display: flex;
+  gap: 8px;
+}
+
+.button {
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius);
+  background: var(--raised-bg);
+  color: var(--text-1);
+  font: inherit;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--raised-bg-hover);
+}
+
+.button:active:not(:disabled) {
+  background: var(--inset-bg);
+}
+
+.button:disabled {
+  color: var(--text-3);
+  cursor: not-allowed;
+}
+
+.button--small {
+  min-height: 26px;
+  font-size: 12px;
+}
+
+/* Kept apart from the view buttons: it discards edits. */
+.button--push-right {
+  margin-left: auto;
+}
+
+/* Fields */
+.field + .field {
+  margin-top: 12px;
+}
+
+.field input[type='range'],
+.field select,
+.field input[type='text'] {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 4px 0 0;
+}
+
+.field select,
+.field input[type='text'] {
+  min-height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius);
+  background: var(--inset-bg);
+  color: var(--text-1);
+  font: inherit;
+}
+
+.field--inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.field__label-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.field__label--changed::after {
+  content: ' •';
+  color: var(--accent);
+}
+
+.field__value {
+  color: var(--text-2);
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.field--inline .field__value {
+  margin-left: auto;
+}
+
+.field__hint {
+  margin: 4px 0 0;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+input[type='color'] {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius);
+  background: none;
+  cursor: pointer;
+}
+
+/* Host status */
+.edit-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--inset-bg);
+  color: var(--text-2);
+}
+
+.edit-status[data-kind='rejected'] {
+  color: hsl(12 80% 74%);
+}
+
+.spinner {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--text-3);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Settings */
+.settings-section {
+  border-radius: var(--radius);
+  background: var(--raised-bg);
+}
+
+.settings-section + .settings-section {
+  margin-top: 8px;
+}
+
+.settings-section > summary {
+  padding: 8px 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-section[open] > summary {
+  border-bottom: 1px solid var(--divider);
+}
+
+.settings-group {
+  margin: 0;
+  padding: 12px;
+  border: none;
+}
+
+.settings-group + .settings-group {
+  border-top: 1px solid var(--divider);
+}
+
+.settings-group > legend {
+  float: left; /* lets the legend sit inside the padded box like a heading */
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 0;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.settings-group > legend + * {
+  clear: both;
+}
