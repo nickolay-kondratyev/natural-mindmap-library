@@ -3,7 +3,7 @@ profile: standard
 id: nid_bjzc14tu7h3d3fjknqyfk17r5_e
 title: "Demo Paste Markdown mode and v0.2.0 release (docs, spec, git tag)"
 status: open
-deps: [nid_t5ydqj1ar6fdjksdps0sk2e0g_e, nid_idiv2268vh6mpy2gbnkrjlgw6_e, nid_z8ks1fhjsspq9jgdh0mxtv4sm_e]
+deps: [nid_gbj85a2pad7yofsjnf7ng26ff_e, nid_t5ydqj1ar6fdjksdps0sk2e0g_e, nid_idiv2268vh6mpy2gbnkrjlgw6_e, nid_z8ks1fhjsspq9jgdh0mxtv4sm_e]
 links: []
 created_iso: 2026-10-23T20:13:10Z
 status_updated_iso: 2026-10-23T20:13:10Z
@@ -19,19 +19,22 @@ tags: [obsidian-heading-launch]
 
 Part of epic `nid_rk795rjqzzksdjrhm03dy6s7l_e` (library ready for the Obsidian heading map of one note). Let the
 heading map be tried and tuned in the browser without Obsidian, then cut a version the plugin repo can depend on.
-This is the closing ticket: it runs after speed, host hooks and the layout/label work have merged.
+This is the closing ticket: it runs after the "+" fix, speed, host hooks and the layout/label work have merged.
 
 ## Done criteria
 
 - **Demo:** the runner can take pasted Markdown and show its headings as the map (parser in `demo/` only). Mapping,
-  as the plugin will do it: root = the note title (or the single H1, if the text has exactly one); each heading's
+  as the plugin will do it: root = a fixed note title (the demo has no file name; e.g. "Pasted note"), or the single
+  H1 if the text has exactly one; each heading's
   parent is the nearest heading above it with a lower level (skipped levels attach to that heading); text before the
   first heading is ignored; `#` lines inside fenced code blocks are not headings. Going back to the reference map
   stays possible ("Reset map").
 - **Release:** `docs/architecture.md` and `spec.md` describe the new API and options from the sibling tickets (click
   callback, highlight, center on node, move-only switch, clockwise order, minimum label size, emoji / non-Latin
-  fallback incl. the R17 exception). `package.json` version and a short `CHANGELOG.md` match the tag, and a git tag
-  (e.g. `v0.2.0`) marks the commit the plugin can depend on.
+  fallback). The R17 exception and the `docs/architecture.md` sections for each feature are written by the sibling
+  tickets; this ticket fills the remaining `spec.md` gaps and checks the whole is consistent. `package.json` version and a short `CHANGELOG.md` match the tag, and a **local**
+  annotated git tag (e.g. `v0.2.0`) marks the commit the plugin can depend on. The tag is **not pushed**: pushing
+  it (and the branch) is left to the human. The done note names the tagged commit.
 - With default config the look is unchanged: `e2e/reference-view.spec.ts` passes without re-baselining.
   `npm run typecheck`, `npm test`, `npm run build` and `npm run e2e` pass on the tagged commit.
 
@@ -54,7 +57,8 @@ This is the closing ticket: it runs after speed, host hooks and the layout/label
   skipped levels, single H1 as root, text before the first heading, code fences). One Playwright journey: paste
   Markdown, the map shows its headings (assert via `window.mindmap` / data, not pixels). E2E imports `test` from
   `e2e/fixtures.ts`.
-- Create the tag locally; pushing it is the human's call.
+- Create the tag locally only; never `git push` the tag. If the work lands through a merge, tag the commit that
+  ends up on the target branch, so the tag is not left on an unmerged branch commit.
 
 ## Non-goals
 

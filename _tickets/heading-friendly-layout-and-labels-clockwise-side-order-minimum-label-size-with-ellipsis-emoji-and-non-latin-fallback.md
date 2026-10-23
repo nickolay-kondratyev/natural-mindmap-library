@@ -25,7 +25,8 @@ Make the map read in document order, keep long labels readable, and never show e
 
 - **Document-order layout:** a config option puts first-level nodes clockwise: the first half on the right, top to
   bottom, then the second half on the left, bottom to top, in data order. Explicit `side` values still win. The
-  default stays today's alternating order.
+  default stays today's alternating order. With an odd count the right side gets the extra node (as alternating
+  does today); the halves are taken over the first-level nodes without an explicit `side`.
 - **Long labels:** a node label never shrinks below a configurable minimum size; text that still does not fit ends
   with "…".
 - **Emoji and non-Latin text** (decided by the human, 2026-10-23): when the label font lacks a glyph for some
@@ -33,7 +34,8 @@ Make the map read in document order, keep long labels readable, and never show e
   character**, using fallback fonts (the minimum size and "…" rule still apply). Labels the font fully covers render
   exactly as today.
 - The new config options appear in the demo settings panel and survive `restoreConfig`.
-- `spec.md` R17 notes the fallback exception (see Constraints).
+- `spec.md` R17 notes the fallback exception (see Constraints). This ticket owns that spec note; the release
+  ticket `nid_bjzc14tu7h3d3fjknqyfk17r5_e` only checks it.
 - With default config the look is unchanged: `e2e/reference-view.spec.ts` passes without re-baselining.
   `npm run typecheck`, `npm test` and `npm run e2e` pass.
 
@@ -41,6 +43,9 @@ Make the map read in document order, keep long labels readable, and never show e
 
 - First-level sides alternate right/left in data order: `src/core/model/tree.ts` (`alternatingSide`, `sideOf`).
   The layout reads sides from the tree; `src/core/layout/tidyTreeStage.ts` lays out each side.
+- Pitfalls for clockwise: `buildTree(nodes)` takes no config today, so the option has to reach side assignment
+  somehow (implementer's choice). `tidyTreeStage.ts` stacks a side's first-level nodes top to bottom in data
+  order, so "left, bottom to top" means the left side's vertical order is reversed.
 - Node labels shrink without limit: `src/core/text/labelLayout.ts` (`layoutNodeLabel`). Branch labels fit via the
   R15 cascade in `src/core/text/branchTextFit.ts`. Drawing: `src/core/render/labelRenderer.ts` (`drawLabels`,
   `nodeLabelInk`), `src/core/text/labelPainter.ts`.
@@ -73,7 +78,8 @@ Make the map read in document order, keep long labels readable, and never show e
 - Tests: Vitest BDD (`describe` GIVEN, `it` WHEN/THEN, one behavior per test) for the clockwise side rule (odd and
   even counts, explicit `side` mixed in), min size + "…" layout, and missing-glyph detection (Latin, emoji with
   ZWJ/FE0F, CJK, Cyrillic, whitespace). Playwright only if a key journey needs it; no look assertions.
-- Update `docs/architecture.md` ("Labels") for the fallback path and the new options.
+- Update `docs/architecture.md` ("Labels" bullet under "Seams and their contracts") for the fallback path and the
+  new options. Other `spec.md` updates (clockwise, minimum label size) are done in the release ticket.
 
 ## Non-goals
 

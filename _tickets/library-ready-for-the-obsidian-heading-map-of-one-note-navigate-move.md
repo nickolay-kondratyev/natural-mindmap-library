@@ -83,12 +83,12 @@ This epic is the plan; it is split into the child tickets listed under "Children
 
 ## Planned split (child tickets, one session each)
 
-1. **Speed:** scene cache, faster branch routing, `npm run bench`.
-2. **Host hooks for navigation:** click event, highlight, center on node, the switch that turns off add, rename and
+1. `nid_t5ydqj1ar6fdjksdps0sk2e0g_e` **Speed:** scene cache, faster branch routing, `npm run bench`.
+2. `nid_idiv2268vh6mpy2gbnkrjlgw6_e` **Host hooks for navigation:** click event, highlight, center on node, the switch that turns off add, rename and
    delete. Settle the click rule with ticket `nid_gbj85a2pad7yofsjnf7ng26ff_e` in mind.
-3. **Heading-friendly layout and labels:** clockwise side order, minimum label size plus "…", emoji / non-Latin
+3. `nid_z8ks1fhjsspq9jgdh0mxtv4sm_e` **Heading-friendly layout and labels:** clockwise side order, minimum label size plus "…", emoji / non-Latin
    handling (hide on the branch, fallback fonts on the node).
-4. **Demo "Paste Markdown" + release:** demo mode, docs, git tag. Depends on 1-3.
+4. `nid_bjzc14tu7h3d3fjknqyfk17r5_e` **Demo "Paste Markdown" + release:** demo mode, docs, local git tag (not pushed; pushing is the human's call). Depends on 1-3.
 
 0. **Existing ticket `nid_gbj85a2pad7yofsjnf7ng26ff_e`:** make the "+" reachable and remove the "x" for now. Do it
    before or together with 2, since both change the hover buttons.

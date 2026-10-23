@@ -30,8 +30,8 @@ offer move only (no add, rename or delete) for the first launch. Give hosts thos
   `MindmapHandle` and the `<Mindmap>` ref (`MindmapApi`). The highlight is visible in the default dark theme;
   centering moves the view (reported through `onViewChange` like other library view changes) and does nothing
   harmful for an unknown id.
-- **Move-only maps:** config can turn off add, rename and delete. When they are off, the map shows no "+" or "x",
-  and a double-click does not open the rename editor. Move (drag onto a node) still works through the confirm protocol.
+- **Move-only maps:** config can turn off add, rename and delete. When they are off, the map shows no "+" (the "x" is
+  already gone after `nid_gbj85a2pad7yofsjnf7ng26ff_e`; delete stays covered by the switch for future UI), and a double-click does not open the rename editor. Move (drag onto a node) still works through the confirm protocol.
 - The new config options appear in the demo settings panel (it is generated from `DEFAULT_CONFIG`) and survive
   `restoreConfig`.
 - With default config the look and behavior are unchanged: `e2e/reference-view.spec.ts` passes without
