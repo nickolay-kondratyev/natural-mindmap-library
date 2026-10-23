@@ -62,7 +62,7 @@ This epic is the plan. Break it into child tickets (see "Planned split") before 
 - Node labels shrink without limit: `src/core/text/labelLayout.ts` (`layoutNodeLabel`).
 - The demo settings panel is generated from `DEFAULT_CONFIG` (`demo/settings/settingsModel.ts`). New numeric settings
   need a range in `demo/settings/settingSpecs.ts` `NUMBER_RANGES`, otherwise the build fails.
-- Related open ticket `nid_gbj85a2pad7yofsjnf7ng26ff_e` ("+" hides too early; remove the "x" for now). It touches the
+- Child ticket `nid_gbj85a2pad7yofsjnf7ng26ff_e` ("+" hides too early; remove the "x" for now) is part of this epic. It touches the
   same hover buttons; keep the two consistent.
 
 ## Constraints
@@ -72,7 +72,7 @@ This epic is the plan. Break it into child tickets (see "Planned split") before 
 - Config stays plain serializable data (`MindmapConfig`). Event callbacks go on `MountOptions` and `<Mindmap>` props,
   the same way `onNodeReposition` does.
 - No Markdown knowledge in `src/`: the heading parser exists only in `demo/`. The plugin uses Obsidian's own heading list.
-- Fallback on nodes, recommended approach (pending the human's OK): draw such node labels with the canvas's own text
+- Fallback on nodes (approach approved by the human, 2026-10-23): draw such node labels with the canvas's own text
   drawing (`fillText`) and a CSS font list that starts with the label font, which `src/core/text/cssFontFaces.ts`
   already registers from the same bytes. The browser then uses the label font for the glyphs it has and system fonts
   (color emoji, CJK, Cyrillic) for the rest. This is a deliberate exception to spec R17 (outline-only text), only for
@@ -90,7 +90,10 @@ This epic is the plan. Break it into child tickets (see "Planned split") before 
    handling (hide on the branch, fallback fonts on the node).
 4. **Demo "Paste Markdown" + release:** demo mode, docs, git tag. Depends on 1-3.
 
-1, 2 and 3 are independent and can run in parallel.
+0. **Existing ticket `nid_gbj85a2pad7yofsjnf7ng26ff_e`:** make the "+" reachable and remove the "x" for now. Do it
+   before or together with 2, since both change the hover buttons.
+
+0, 1 and 3 are independent and can run in parallel; 2 builds on 0.
 
 ## Non-goals
 
