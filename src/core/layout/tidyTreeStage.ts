@@ -26,9 +26,18 @@ export const tidyTreeStage: LayoutStage = {
   },
 };
 
+/**
+ * A side's first-level nodes top to bottom. Data order, except that `clockwise` reads the left side bottom to top
+ * (right side down, then left side up, like a clock), so the left side is reversed.
+ */
+function firstLevelInVerticalOrder(side: Side, { tree, config }: LayoutContext): MindmapNode[] {
+  const onSide = tree.childrenOf(tree.root.id).filter((n) => tree.sideOf(n.id) === side);
+  return config.sideOrder === 'clockwise' && side === 'left' ? onSide.reverse() : onSide;
+}
+
 function layoutSide(side: Side, context: LayoutContext, positions: Map<NodeId, Point>): void {
   const { tree, sizes, config } = context;
-  const firstLevel = tree.childrenOf(tree.root.id).filter((n) => tree.sideOf(n.id) === side);
+  const firstLevel = firstLevelInVerticalOrder(side, context);
   if (firstLevel.length === 0) return;
 
   const sideRoot = hierarchy<MindmapNode>(tree.root, (node) => (node.id === tree.root.id ? firstLevel : tree.childrenOf(node.id)));

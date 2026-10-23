@@ -54,10 +54,20 @@ export interface BranchTextFitConfig {
   readonly minFontScale: number;
 }
 
+/** Fitting rule for node labels wider than their node. */
+export interface NodeTextFitConfig {
+  /**
+   * The label shrinks down to this fraction of `sizePx`, then is cut and ends with "…". 0 (the default) shrinks
+   * without limit and never cuts.
+   */
+  readonly minFontScale: number;
+}
+
 export interface TextConfig {
   readonly node: FontConfig;
   readonly branch: FontConfig;
   readonly branchFit: BranchTextFitConfig;
+  readonly nodeFit: NodeTextFitConfig;
 }
 
 /** How the map behaves under the user's hands (spec I1-I5). */
@@ -120,6 +130,7 @@ export const DEFAULT_CONFIG: MindmapConfig = {
     // A thin dark outline keeps white branch text legible on light limb colors (spec §8 "Text").
     branch: { ...DEFAULT_FONT, outlineWidthPx: 1.5 },
     branchFit: { paddingPx: 8, minPaddingPx: 2, minLetterSpacingEm: -0.05, minFontScale: 0.6 },
+    nodeFit: { minFontScale: 0 },
   },
   layout: DEFAULT_LAYOUT_CONFIG,
   interaction: { confirmReparent: true },

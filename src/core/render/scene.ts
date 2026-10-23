@@ -27,7 +27,7 @@ export function buildScene(
   extensions: MindmapExtensions,
   overrides: PositionOverrides = NO_POSITION_OVERRIDES,
 ): Scene {
-  const tree = buildTree(data);
+  const tree = buildTree(data, config.layout.sideOrder);
   const sizes = resolveNodeSizes(tree, config.node);
   const laidOut = runLayoutPipeline(
     { tree, sizes, config: config.layout, bowCurve: extensions.bowCurve },

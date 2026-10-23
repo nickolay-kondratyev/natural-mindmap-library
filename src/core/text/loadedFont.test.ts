@@ -17,6 +17,34 @@ describe('LoadedFont', () => {
     expect(font.shape('Hamlet').advancesEm.every((advance) => advance > 0 && advance < 2)).toBe(true);
   });
 
+  it('WHEN checking Latin text with accents THEN the font covers it', () => {
+    expect(font.coversText('Café Hamlet')).toBe(true);
+  });
+
+  it('WHEN checking the ellipsis THEN the font covers it', () => {
+    expect(font.coversText('\u2026')).toBe(true);
+  });
+
+  it('WHEN checking an emoji THEN the font does not cover it', () => {
+    expect(font.coversText('Coffee \u2615')).toBe(false);
+  });
+
+  it('WHEN checking a surrogate-pair emoji sequence with joiners and variation selectors THEN the font does not cover it', () => {
+    expect(font.coversText('\u{1F468}\u200d\u{1F469}\ufe0f')).toBe(false);
+  });
+
+  it('WHEN checking CJK text THEN the font does not cover it', () => {
+    expect(font.coversText('\u65e5\u672c')).toBe(false);
+  });
+
+  it('WHEN checking Cyrillic text THEN the font does not cover it', () => {
+    expect(font.coversText('\u043f\u0440\u0438\u0432\u0435\u0442')).toBe(false);
+  });
+
+  it('WHEN the only glyphless characters are whitespace, a joiner and a variation selector THEN the font covers the text', () => {
+    expect(font.coversText('a\t \u00a0\u200d\ufe0f b')).toBe(true);
+  });
+
   it('WHEN bytes are not a font THEN parsing throws', () => {
     expect(() => LoadedFont.parse(new ArrayBuffer(16))).toThrow();
   });

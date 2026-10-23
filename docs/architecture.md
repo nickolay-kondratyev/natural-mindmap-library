@@ -43,7 +43,7 @@ branches per pointer move, over a frozen base scene.
 
 | Dir | Owns | Key names |
 |---|---|---|
-| `model/` | Host data types, tree index, reference data | `MindmapNode`, `buildTree` -> `MindmapTree` (depth, side, ancestry), `REFERENCE_DATA` |
+| `model/` | Host data types, tree index, reference data | `MindmapNode`, `buildTree(nodes, sideOrder)` -> `MindmapTree` (depth, side, ancestry), `SideOrder`, `REFERENCE_DATA` |
 | `config/` | Plain-data config + defaults + deep merge + settings storage seam | `MindmapConfig`, `DEFAULT_CONFIG`, `resolveConfig`, `ThemeConfig`, `SettingsStorage`, `SettingsPersistence`, `restoreConfig` |
 | `size/` | Single source of node sizes (R4) | `resolveNodeSizes(tree, config.node)` -> `NodeSizeMap` |
 | `layout/` | Layout `type` union + stage pipeline + bow curve + default stages + user position overrides | `LayoutConfig`, `LayoutStage`, `LayoutContext`, `runLayoutPipeline`, `defaultLayoutStages`, `layoutMindmap`, `BowCurve`, `tidyTreeStage`, `rootBowStage`, `handDrawnJitterStage`, `collisionStage` / `resolveCollisions`, `applyPositionOverrides`, `moveSubtree` |
@@ -52,7 +52,7 @@ branches per pointer move, over a frozen base scene.
 | `color/` | Color strategy seam (R10/R11) | `ColorStrategy.resolve(tree, theme) -> NodeColorMap`, `parentDerivedColorStrategy` |
 | `render/` | Scene assembly, scene cache, canvas drawing, frame coalescing | `buildScene`, `cachedSceneBuilder`, `drawScene`, `drawLabels`, `drawInteractionOverlay`, `RepaintScheduler` |
 | `memo/` | Identity memo for the repaint path | `rememberLast(fn)` (previous result while every argument is `===`) |
-| `text/` | Font loading + glyph-outline labels (R12-R18, L6) | `LabelFontLoader` / `FontStore` (`FontFetcher` seam), `LoadedFont.shape`, `rimToRimSpan`, `fitBranchText`, `layoutBranchLabel`, `layoutNodeLabel`, `paintLabel`, `CssFontFaces` (same bytes as DOM font for inline rename) |
+| `text/` | Font loading + glyph-outline labels (R12-R18, L6) | `LabelFontLoader` / `FontStore` (`FontFetcher` seam), `LoadedFont.shape` / `coversText`, `rimToRimSpan`, `fitBranchText`, `fitNodeText`, `layoutBranchLabel`, `layoutNodeLabel`, `paintLabel`, `paintSystemTextLabel`, `CssFontFaces` (same bytes as DOM font for inline rename and fallback labels) |
 | `extensions.ts` | Bundle of code-level extension points | `MindmapExtensions`, `DEFAULT_EXTENSIONS` |
 | `edit/` | Request -> confirm protocol (I5), default host (I6) | `EditRequest`, `EditHandler`, `EditSession`, `findEditProblem`, `applyEdit`, `InMemoryHost` |
 | `view/` | Library-local pan/zoom (I1) | `MindmapView`, `ViewController` |
@@ -74,6 +74,10 @@ branches per pointer move, over a frozen base scene.
   `defaultLayoutStages(config)` switches exhaustively on `config.type`; adding a layout `type` means
   extending the union in `layout/layoutConfig.ts` and the switch in `layout/pipeline.ts`.
   Scene coordinates: root at `(0, 0)`, +x right, +y down; the renderer centers the root in the viewport.
+  First-level sides come from the tree: explicit `side`, else `layout.sideOrder` splits the unsided nodes in data
+  order (`alternating` right/left/right, the default; `clockwise` first half right top to bottom, second half left
+  bottom to top, so `tidy-tree` reverses the left side's vertical order). `buildScene` / `layoutMindmap` pass it to
+  `buildTree`; structural callers (edits) build without it.
   Bilateral defaults, in order: `tidy-tree` (d3-hierarchy per side, size-aware edge gaps; creates positions),
   `root-bow` (shifts each first-level subtree outward by `bowCurve`), `hand-drawn-jitter` (offset hashed from
   the node id, so deterministic and stable under edits), `collision` (push-apart, root pinned).
@@ -104,9 +108,18 @@ branches per pointer move, over a frozen base scene.
   `onFontStatusChange` / `handle.fontStatus()`. A font that is loading or failed is `null` for the paint, so
   its text is skipped, never thrown.
 - **Labels** (R12-R17): text is shaped once per font+string into em outlines + advances, then laid out by pure
-  functions (`text/labelLayout.ts`) and inked from outlines (never `fillText`). Branch labels sit between the
+  functions (`text/labelLayout.ts`) and inked from outlines. Branch labels sit between the
   rims (`rimToRimSpan` bisects `nodeShape.contains` along the `BranchPath`), flip when the path heads left,
-  and fit via the R15 cascade in `text/branchTextFit.ts`.
+  and fit via the R15 cascade in `text/branchTextFit.ts`. Node labels fit via `text/nodeTextFit.ts`: shrink down to
+  `text.nodeFit.minFontScale` (default 0 = unlimited, today's look), then cut and end with "…"; the fit is
+  measurement-agnostic (glyph runs or `measureText`).
+  Fallback (the one R17 exception): a label with a character its font lacks (`LoadedFont.coversText`: glyph 0 by
+  code point; whitespace, U+200D and variation selectors never count) is skipped on its branch and drawn on its node
+  by `paintSystemTextLabel` with `fillText` and the CSS family list from `CssFontFaces` (label font first, so the
+  browser substitutes system fonts only for the missing glyphs: color emoji, CJK, Cyrillic). The mount owns
+  `CssFontFaces` and passes the family to `drawScene` as `LabelFallback`; a face becoming usable requests a repaint.
+  Fully covered labels render exactly as before. Not bundled: fallback fonts (Noto CJK is many MB, opentype.js has
+  no color emoji).
 - **Edit protocol** (I5): `EditHandler(request, currentData) -> Promise<MindmapData>`. Resolve with the
   host's updated data (rendered as-is; the library never applies the change to confirmed data, L2); reject
   with an `Error` whose message is a plain-language reason. `EditSession.submit` refuses up front (no request

@@ -9,6 +9,7 @@ import type { MindmapData, NodeId } from './model/node';
 import { drawScene, type Viewport } from './render/canvasRenderer';
 import { RepaintScheduler, windowFrameScheduler, type FrameScheduler } from './render/repaintScheduler';
 import type { NodeBox } from './shape/nodeShape';
+import { CssFontFaces } from './text/cssFontFaces';
 import { fetchFontBytes, type FontFetcher } from './text/fontStore';
 import { LabelFontLoader, type LabelFontStatus } from './text/labelFontLoader';
 import { contentBounds } from './view/fitView';
@@ -74,6 +75,7 @@ class CanvasMount implements MindmapHandle {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly scheduler: RepaintScheduler;
   private readonly fonts: LabelFontLoader;
+  private readonly cssFonts: CssFontFaces;
   private readonly edits: EditSession;
   private readonly view: ViewController;
   private readonly interactions: CanvasInteractions;
@@ -105,6 +107,7 @@ class CanvasMount implements MindmapHandle {
       onStatusChange: (status) => options.onFontStatusChange?.(status),
     });
     this.fonts.use(this.config.text);
+    this.cssFonts = new CssFontFaces(canvas.ownerDocument, () => this.scheduler.request());
     this.interactions = new CanvasInteractions({
       canvas,
       edits: this.edits,
@@ -112,6 +115,7 @@ class CanvasMount implements MindmapHandle {
       config: () => this.config,
       extensions: () => this.extensions,
       fonts: () => this.fonts.fonts(),
+      cssFontFamily: (font) => this.cssFonts.familyFor(font),
       requestRepaint: () => this.scheduler.request(),
       onNodeReposition: (event) => options.onNodeReposition?.(event),
       // Same path as a host `setConfig`, so an in-map change can never skip what applying settings involves.
@@ -196,6 +200,7 @@ class CanvasMount implements MindmapHandle {
     this.interactions.dispose();
     this.edits.dispose();
     this.fonts.dispose();
+    this.cssFonts.dispose();
     this.scheduler.cancel();
   }
 
@@ -212,7 +217,10 @@ class CanvasMount implements MindmapHandle {
     // Feeds the fit target before drawing, so the initial fit (which reports a view change and thereby
     // requests one more, identical frame) is already applied to this paint.
     this.view.setContentBounds(contentBounds(scene.positions, scene.sizes));
-    drawScene(this.ctx, scene, this.config, this.extensions, this.viewport, this.view.view, this.fonts.fonts());
+    const fonts = this.fonts.fonts();
+    drawScene(this.ctx, scene, this.config, this.extensions, this.viewport, this.view.view, fonts, {
+      nodeFontFamily: this.cssFonts.familyFor(fonts.node),
+    });
     this.interactions.paintOverlay(this.ctx, scene, this.viewport);
   }
 }

@@ -6,14 +6,20 @@ const FAMILY_PREFIX = 'natural-mindmap-font-';
 
 /**
  * Registers parsed label fonts with the document (`FontFace` from the very same bytes), so DOM text such as the
- * inline rename input (spec I4) shows the real font instead of a look-alike. Each font is registered once.
+ * inline rename input (spec I4) and system-font fallback labels on the canvas show the real font where it has the
+ * glyph. Each font is registered once.
  */
 export class CssFontFaces {
   private readonly families = new WeakMap<LoadedFont, string>();
   private readonly faces: FontFace[] = [];
   private registered = 0;
+  private disposed = false;
 
-  constructor(private readonly document: Document) {}
+  constructor(
+    private readonly document: Document,
+    /** A registered face became usable: canvas text drawn before this used the fallback family, so repaint. */
+    private readonly onFontReady: () => void = () => {},
+  ) {}
 
   /** CSS `font-family` value for `font`; the fallback alone when no font is loaded. */
   familyFor(font: LoadedFont | null): string {
@@ -21,8 +27,12 @@ export class CssFontFaces {
     return `"${this.register(font)}", ${FALLBACK_FAMILY}`;
   }
 
-  /** Unregisters every face this instance added, so remounting does not pile them up on the document. */
+  /**
+   * Unregisters every face this instance added, so remounting does not pile them up on the document, and stops
+   * `onFontReady`: a load still settling must not repaint a destroyed mount.
+   */
   dispose(): void {
+    this.disposed = true;
     for (const face of this.faces) this.document.fonts.delete(face);
     this.faces.length = 0;
   }
@@ -36,7 +46,12 @@ export class CssFontFaces {
     this.document.fonts.add(face);
     this.faces.push(face);
     // Bytes are local, so this settles almost at once; a font the browser cannot use just leaves the fallback.
-    face.load().catch((error: unknown) => console.warn('natural-mindmap: label font unusable for inline editing', { error }));
+    face
+      .load()
+      .then(() => {
+        if (!this.disposed) this.onFontReady();
+      })
+      .catch((error: unknown) => console.warn('natural-mindmap: label font unusable for DOM text', { error }));
     this.families.set(font, family);
     return family;
   }

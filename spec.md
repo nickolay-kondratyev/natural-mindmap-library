@@ -76,6 +76,10 @@ The library should expose the different settings, and we should also have a runn
 **Typography**
 - R17. Text uses real font glyph outlines (not `ctx.fillText`) so it can bend and so
   styling (letter spacing, stretch, slant, bold, outline) is uniform.
+  - Exception (decided 2026-10-23): a label with a character the label font lacks (emoji, CJK, Cyrillic, ...)
+    is not drawn on its branch, and its node label is drawn with `ctx.fillText` and a CSS font list that starts
+    with the label font, so system fonts supply the missing glyphs and every character shows. Labels the font
+    fully covers always use outlines.
 - R18. Default font is a handwritten one (e.g. **Kalam**). Branch text and node
   text fonts are configurable independently.
 

@@ -2,7 +2,7 @@ import type { MindmapConfig } from '../config/config';
 import type { MindmapExtensions } from '../extensions';
 import { taperedOutline, type BranchOutline } from '../geometry/taperedOutline';
 import type { LabelFonts } from '../text/labelFontLoader';
-import { drawLabels } from './labelRenderer';
+import { drawLabels, type LabelFallback } from './labelRenderer';
 import type { Scene } from './scene';
 import type { MindmapView } from '../view/viewController';
 
@@ -27,6 +27,7 @@ export function drawScene(
   viewport: Viewport,
   view: MindmapView,
   fonts: LabelFonts,
+  fallback: LabelFallback,
 ): void {
   ctx.setTransform(viewport.devicePixelRatio, 0, 0, viewport.devicePixelRatio, 0, 0);
   ctx.fillStyle = config.theme.color.background;
@@ -47,7 +48,7 @@ export function drawScene(
     extensions.nodeShape.draw(ctx, { center, size }, { ...color, outlineWidth: NODE_OUTLINE_WIDTH_PX });
   }
 
-  drawLabels(ctx, scene, config, extensions, fonts);
+  drawLabels(ctx, scene, config, extensions, fonts, fallback);
 }
 
 /** Maps scene coordinates onto the canvas: the same mapping as `ViewController.sceneToScreen` (spec I1). */
