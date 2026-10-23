@@ -82,7 +82,6 @@ scheduler; every setter just requests a repaint (spec L8). The painted data is `
 - **Node shape** (R2): `draw` paints fill + outline; `contains` is for hit testing; `rimPoint` for geometry.
 - **Color strategy** (R10/R11): returns fill + outline per node id; root colors come from `theme.color.root`.
 - **Node sizes** (R4): always read from `Scene.sizes` / `resolveNodeSizes`; never compute sizes elsewhere.
-<<<<<<< HEAD
 - **Fonts** (L5/L6): `MountOptions.fontFetcher(url) -> Promise<ArrayBuffer>` is the I/O seam (default `fetch`;
   hosts holding bytes return them). `FontStore` loads each URL once; `LabelFontLoader` follows
   `config.text.{node,branch}.url`, repaints on settle and reports `{ node, branch }` status via
@@ -92,14 +91,6 @@ scheduler; every setter just requests a repaint (spec L8). The painted data is `
   functions (`text/labelLayout.ts`) and inked from outlines (never `fillText`). Branch labels sit between the
   rims (`rimToRimSpan` bisects `nodeShape.contains` along the `BranchPath`), flip when the path heads left,
   and fit via the R15 cascade in `text/branchTextFit.ts`.
-
-## Placeholders owned by follow-up tickets
-
-- `layout/placeholderBilateralStage.ts`: grid layout -> tidy tree, bow, jitter, collision stages.
-- `render/scene.ts` `straightBranches`: straight segments -> curved tapered geometry.
-- `render/canvasRenderer.ts`: stroked lines -> filled limbs.
-- `mount.ts`: no interaction/edit protocol/view model yet; those add fields to `MountOptions`/`MindmapHandle`.
-=======
 - **Edit protocol** (I5): `EditHandler(request, currentData) -> Promise<MindmapData>`. Resolve with the
   host's updated data (rendered as-is; the library never applies the change to confirmed data, L2); reject
   with an `Error` whose message is a plain-language reason. `EditSession.submit` refuses up front (no request
@@ -112,11 +103,9 @@ scheduler; every setter just requests a repaint (spec L8). The painted data is `
 
 ## Placeholders owned by follow-up tickets
 
-- `render/canvasRenderer.ts`: `fillText` labels -> glyph outlines.
 - `mount.ts`: no pointer/DOM wiring yet (pan drag, wheel, node drag/drop, "+" button, inline rename);
   the interaction ticket drives `ViewController` / `EditSession` from it, emits `onNodeReposition`, and
   shows `EditSession.preview` as pending (dimmed) plus the rejection reason.
->>>>>>> origin/main
 
 ## Testing
 

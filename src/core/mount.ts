@@ -8,12 +8,9 @@ import type { MindmapData } from './model/node';
 import { drawScene, type Viewport } from './render/canvasRenderer';
 import { RepaintScheduler, windowFrameScheduler, type FrameScheduler } from './render/repaintScheduler';
 import { buildScene } from './render/scene';
-<<<<<<< HEAD
 import { fetchFontBytes, type FontFetcher } from './text/fontStore';
 import { LabelFontLoader, type LabelFontStatus } from './text/labelFontLoader';
-=======
 import { ViewController, type MindmapView } from './view/viewController';
->>>>>>> origin/main
 
 export interface MountOptions {
   readonly data: MindmapData;
@@ -21,12 +18,10 @@ export interface MountOptions {
   readonly extensions?: Partial<MindmapExtensions>;
   /** Injectable for tests; defaults to `requestAnimationFrame`. */
   readonly frames?: FrameScheduler;
-<<<<<<< HEAD
   /** Font I/O seam (spec L5 Fonts); defaults to `fetch`. Return bytes you already hold to skip the network. */
   readonly fontFetcher?: FontFetcher;
   /** Font loading status (spec L6): called once at mount and on every change, e.g. to show a loading state. */
   readonly onFontStatusChange?: (status: LabelFontStatus) => void;
-=======
   /** Host side of the edit protocol (spec I5); defaults to the in-memory host that confirms immediately (I6). */
   readonly onEditRequest?: EditHandler;
   /** Pending / rejected / idle, so the host can show a busy state or the rejection reason. */
@@ -35,7 +30,6 @@ export interface MountOptions {
   readonly onViewChange?: (view: MindmapView) => void;
   /** Node drags (spec I2); emitted by the pointer interactions. */
   readonly onNodeReposition?: (event: NodeRepositionEvent) => void;
->>>>>>> origin/main
 }
 
 /** Handle returned by `mountMindmap`; every setter coalesces into one repaint per frame (spec L8). */
@@ -45,9 +39,8 @@ export interface MindmapHandle {
   setExtensions(extensions: Partial<MindmapExtensions> | undefined): void;
   /** Size in CSS pixels; the backing store is scaled by `devicePixelRatio`. */
   resize(width: number, height: number, devicePixelRatio: number): void;
-<<<<<<< HEAD
+  /** Font loading status (spec L6); the same value `onFontStatusChange` last reported. */
   fontStatus(): LabelFontStatus;
-=======
   /** Sends a structural edit through the host (spec I5); refused up front when invalid or another is pending. */
   requestEdit(request: EditRequest): EditSubmitResult;
   getEditStatus(): EditStatus;
@@ -58,7 +51,6 @@ export interface MindmapHandle {
   zoomIn(): void;
   zoomOut(): void;
   resetView(): void;
->>>>>>> origin/main
   destroy(): void;
 }
 
@@ -69,13 +61,9 @@ export function mountMindmap(canvas: HTMLCanvasElement, options: MountOptions): 
 class CanvasMount implements MindmapHandle {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly scheduler: RepaintScheduler;
-<<<<<<< HEAD
   private readonly fonts: LabelFontLoader;
-  private data: MindmapData;
-=======
   private readonly edits: EditSession;
   private readonly view: ViewController;
->>>>>>> origin/main
   private config: MindmapConfig;
   private extensions: MindmapExtensions;
   private viewport: Viewport;
@@ -130,14 +118,10 @@ class CanvasMount implements MindmapHandle {
     this.applyViewport();
   }
 
-<<<<<<< HEAD
   fontStatus(): LabelFontStatus {
     return this.fonts.status();
   }
 
-  destroy(): void {
-    this.fonts.dispose();
-=======
   requestEdit(request: EditRequest): EditSubmitResult {
     return this.edits.submit(request);
   }
@@ -173,7 +157,7 @@ class CanvasMount implements MindmapHandle {
 
   destroy(): void {
     this.edits.dispose();
->>>>>>> origin/main
+    this.fonts.dispose();
     this.scheduler.cancel();
   }
 
@@ -186,12 +170,7 @@ class CanvasMount implements MindmapHandle {
   }
 
   private paint(): void {
-<<<<<<< HEAD
-    const scene = buildScene(this.data, this.config, this.extensions);
-    drawScene(this.ctx, scene, this.config, this.extensions, this.viewport, this.fonts.fonts());
-=======
     const scene = buildScene(this.edits.displayData, this.config, this.extensions);
-    drawScene(this.ctx, scene, this.config, this.extensions, this.viewport, this.view.view);
->>>>>>> origin/main
+    drawScene(this.ctx, scene, this.config, this.extensions, this.viewport, this.view.view, this.fonts.fonts());
   }
 }

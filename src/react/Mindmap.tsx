@@ -2,13 +2,10 @@ import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, ty
 import {
   DEFAULT_EDIT_HANDLER,
   mountMindmap,
-<<<<<<< HEAD
-  type FontFetcher,
-  type LabelFontStatus,
-=======
   type EditHandler,
   type EditStatus,
->>>>>>> origin/main
+  type FontFetcher,
+  type LabelFontStatus,
   type MindmapData,
   type MindmapExtensions,
   type MindmapHandle,
@@ -41,7 +38,7 @@ export type MindmapApi = Pick<
   'requestEdit' | 'getEditStatus' | 'clearEditRejection' | 'getView' | 'setView' | 'zoomIn' | 'zoomOut' | 'resetView'
 >;
 
-type CallbackProp = 'onEditRequest' | 'onEditStatusChange' | 'onViewChange' | 'onNodeReposition';
+type CallbackProp = 'onEditRequest' | 'onEditStatusChange' | 'onViewChange' | 'onNodeReposition' | 'onFontStatusChange';
 /** Every callback key present (possibly `undefined`), so the latest props can be copied in one assignment. */
 type MindmapCallbacks = { readonly [K in CallbackProp]: MindmapProps[K] };
 
@@ -51,28 +48,31 @@ const FILL_PARENT: CSSProperties = { display: 'block', width: '100%', height: '1
  * Thin React binding (spec L1): mounts the core onto a canvas, forwards prop changes, and keeps the
  * canvas backing store in sync with its CSS size and device pixel ratio.
  */
-<<<<<<< HEAD
-export function Mindmap({ data, config, extensions, fontFetcher, onFontStatusChange, className, style }: MindmapProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const handleRef = useRef<MindmapHandle | null>(null);
-  // Latest callback without remounting the canvas when the host passes a new closure each render.
-  const onFontStatusChangeRef = useRef(onFontStatusChange);
-  onFontStatusChangeRef.current = onFontStatusChange;
-=======
 export const Mindmap = forwardRef<MindmapApi, MindmapProps>(function Mindmap(
-  { data, config, extensions, className, style, onEditRequest, onEditStatusChange, onViewChange, onNodeReposition },
+  {
+    data,
+    config,
+    extensions,
+    fontFetcher,
+    className,
+    style,
+    onEditRequest,
+    onEditStatusChange,
+    onViewChange,
+    onNodeReposition,
+    onFontStatusChange,
+  },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const handleRef = useRef<MindmapHandle | null>(null);
   // The core is mounted once, so it reads callbacks through this ref to always call the latest props.
-  const callbacks: MindmapCallbacks = { onEditRequest, onEditStatusChange, onViewChange, onNodeReposition };
+  const callbacks: MindmapCallbacks = { onEditRequest, onEditStatusChange, onViewChange, onNodeReposition, onFontStatusChange };
   const callbacksRef = useRef(callbacks);
   useLayoutEffect(() => {
     callbacksRef.current = callbacks;
   });
   useImperativeHandle(ref, () => apiDelegatingTo(handleRef), []);
->>>>>>> origin/main
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -81,15 +81,12 @@ export const Mindmap = forwardRef<MindmapApi, MindmapProps>(function Mindmap(
       data,
       config: config ?? {},
       extensions: extensions ?? {},
-<<<<<<< HEAD
       ...(fontFetcher === undefined ? {} : { fontFetcher }),
-      onFontStatusChange: (status) => onFontStatusChangeRef.current?.(status),
-=======
       onEditRequest: (request, currentData) => (callbacksRef.current.onEditRequest ?? DEFAULT_EDIT_HANDLER)(request, currentData),
       onEditStatusChange: (status) => callbacksRef.current.onEditStatusChange?.(status),
       onViewChange: (view) => callbacksRef.current.onViewChange?.(view),
       onNodeReposition: (event) => callbacksRef.current.onNodeReposition?.(event),
->>>>>>> origin/main
+      onFontStatusChange: (status) => callbacksRef.current.onFontStatusChange?.(status),
     });
     handleRef.current = handle;
     const syncSize = () => handle.resize(canvas.clientWidth, canvas.clientHeight, window.devicePixelRatio);
