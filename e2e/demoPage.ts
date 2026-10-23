@@ -16,13 +16,40 @@ type DemoWindow = Window & { mindmap?: MindmapApi | null };
 /** Several pointer moves per drag, so it crosses the drag threshold like a real hand would. */
 const DRAG_STEPS = 12;
 
+async function canvasBox(page: Page): Promise<{ x: number; y: number; width: number; height: number }> {
+  const canvas = await page.getByTestId('mindmap-canvas').boundingBox();
+  if (canvas === null) throw new Error('The mindmap canvas is not visible');
+  return canvas;
+}
+
 /** Node box in page coordinates, waiting until the node has been painted. */
 export async function nodeBox(page: Page, nodeId: NodeId): Promise<NodeBox> {
   const handle = await page.waitForFunction((id) => (window as DemoWindow).mindmap?.getNodeScreenBox(id) ?? null, nodeId);
   const box = (await handle.jsonValue()) as NodeBox;
-  const canvas = await page.getByTestId('mindmap-canvas').boundingBox();
-  if (canvas === null) throw new Error('The mindmap canvas is not visible');
+  const canvas = await canvasBox(page);
   return { center: { x: canvas.x + box.center.x, y: canvas.y + box.center.y }, size: box.size };
+}
+
+/** Ids of the nodes whose box covers `point` (page coordinates); empty when the point is on bare canvas. */
+export async function nodesAt(page: Page, point: Point): Promise<NodeId[]> {
+  const covering: NodeId[] = [];
+  for (const { id } of await hostData(page)) {
+    const { center, size } = await nodeBox(page, id);
+    if (Math.abs(point.x - center.x) <= size.width / 2 && Math.abs(point.y - center.y) <= size.height / 2) covering.push(id);
+  }
+  return covering;
+}
+
+/**
+ * A page point `insetPx` below the canvas's top edge, horizontally centered, checked to be off every node.
+ * WHY centered: the demo's font badge sits in the top-left corner while fonts load.
+ */
+export async function emptyCanvasPoint(page: Page, insetPx: number): Promise<Point> {
+  const canvas = await canvasBox(page);
+  const point = { x: canvas.x + canvas.width / 2, y: canvas.y + insetPx };
+  const covering = await nodesAt(page, point);
+  if (covering.length > 0) throw new Error(`Expected bare canvas at point=[${JSON.stringify(point)}], covered by nodes=[${covering}]`);
+  return point;
 }
 
 export async function viewOf(page: Page): Promise<MindmapView> {

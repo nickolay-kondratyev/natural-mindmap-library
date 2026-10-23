@@ -1,15 +1,12 @@
 import { HANDLE_GAP, HANDLE_RADIUS, LABEL_EDITOR_ACCESSIBLE_NAME, type Point } from 'natural-mindmap';
 import { DEMO_REJECTION_REASON } from '../demo/host/demoHost';
-import { dragFromTo, hostData, nodeBox, renameByDoubleClick, textOf, viewOf, viewZoom } from './demoPage';
+import { dragFromTo, emptyCanvasPoint, hostData, nodeBox, nodesAt, renameByDoubleClick, textOf, viewOf, viewZoom } from './demoPage';
 import { expect, test } from './fixtures';
 
-/**
- * Screen px above VIDA to drop it at. In the fitted reference view every node sits well below this band
- * (the topmost, Hamlet, is ~25 px above VIDA), so the drop lands on empty canvas.
- */
+/** Screen px above VIDA to drop it at; the test checks no node is there (the topmost, Hamlet, is ~25 px above VIDA). */
 const EMPTY_SPACE_ABOVE_VIDA_PX = 150;
-/** Empty canvas above the whole map in the fitted reference view (nodes start ~250 px down). */
-const EMPTY_CANVAS_POINT: Point = { x: 470, y: 120 };
+/** How far below the canvas top edge the pan / wheel point sits; the fitted map leaves a wider margin above it. */
+const EMPTY_CANVAS_INSET_PX = 40;
 const PAN_DELTA: Point = { x: 80, y: 50 };
 /** Negative = zoom in, like `WheelEvent.deltaY`. */
 const WHEEL_ZOOM_IN_DELTA_Y = -200;
@@ -55,6 +52,7 @@ test.describe('canvas interactions (spec I1-I5)', () => {
       const vida = await nodeBox(page, 'vida');
       hamletStart = (await nodeBox(page, 'hamlet')).center;
       dropPoint = { x: vida.center.x, y: vida.center.y - EMPTY_SPACE_ABOVE_VIDA_PX };
+      expect(await nodesAt(page, dropPoint), 'the drop point must be bare canvas').toEqual([]);
       await dragFromTo(page, vida.center, dropPoint);
     });
 
@@ -87,16 +85,18 @@ test.describe('canvas interactions (spec I1-I5)', () => {
     await expect.poll(async () => (await hostData(page)).filter((node) => removedIds.includes(node.id))).toEqual([]);
   });
 
-  test.describe('GIVEN the reference map (spec I1)', () => {
+  test.describe('GIVEN the reference map and a point on bare canvas (spec I1)', () => {
+    let emptyPoint: Point;
     test.beforeEach(async ({ page }) => {
       await page.goto('/');
       await nodeBox(page, 'root');
+      emptyPoint = await emptyCanvasPoint(page, EMPTY_CANVAS_INSET_PX);
     });
 
     test('WHEN empty canvas is dragged THEN the view pans by the drag distance', async ({ page }) => {
       const before = await viewOf(page);
-      const to = { x: EMPTY_CANVAS_POINT.x + PAN_DELTA.x, y: EMPTY_CANVAS_POINT.y + PAN_DELTA.y };
-      await dragFromTo(page, EMPTY_CANVAS_POINT, to);
+      const to = { x: emptyPoint.x + PAN_DELTA.x, y: emptyPoint.y + PAN_DELTA.y };
+      await dragFromTo(page, emptyPoint, to);
       // Rounded: the drag arrives as several fractional pointer moves whose float sum is not exact.
       await expect
         .poll(async () => {
@@ -108,7 +108,7 @@ test.describe('canvas interactions (spec I1-I5)', () => {
 
     test('WHEN the wheel scrolls up over the canvas THEN the view zooms in', async ({ page }) => {
       const before = await viewZoom(page);
-      await page.mouse.move(EMPTY_CANVAS_POINT.x, EMPTY_CANVAS_POINT.y);
+      await page.mouse.move(emptyPoint.x, emptyPoint.y);
       await page.mouse.wheel(0, WHEEL_ZOOM_IN_DELTA_Y);
       await expect.poll(() => viewZoom(page)).toBeGreaterThan(before);
     });
