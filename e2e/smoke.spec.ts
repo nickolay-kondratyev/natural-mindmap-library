@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 test('demo loads and the canvas renders non-empty', async ({ page }) => {
   await page.goto('/');

@@ -39,7 +39,8 @@ every setter just requests a repaint (spec L8).
 | `geometry/` | Shared branch path representation | `BranchPath { length, sampleAt(arcLength) -> { point, tangent } }`, `Branch`, `StraightPath` |
 | `shape/` | Node shape seam (R2) | `NodeShape { draw, contains, rimPoint }`, `ellipseShape` |
 | `color/` | Color strategy seam (R10/R11) | `ColorStrategy.resolve(tree, theme) -> NodeColorMap`, `parentDerivedColorStrategy` |
-| `render/` | Scene assembly, canvas drawing, frame coalescing | `buildScene`, `drawScene`, `RepaintScheduler` |
+| `render/` | Scene assembly, canvas drawing, frame coalescing | `buildScene`, `drawScene`, `drawLabels`, `RepaintScheduler` |
+| `text/` | Font loading + glyph-outline labels (R12-R18, L6) | `LabelFontLoader` / `FontStore` (`FontFetcher` seam), `LoadedFont.shape`, `rimToRimSpan`, `fitBranchText`, `layoutBranchLabel`, `layoutNodeLabel`, `paintLabel` |
 | `extensions.ts` | Bundle of code-level extension points | `MindmapExtensions`, `DEFAULT_EXTENSIONS` |
 | `mount.ts` | Imperative entry point | `mountMindmap` -> `MindmapHandle` |
 
@@ -65,16 +66,28 @@ every setter just requests a repaint (spec L8).
 - **Node shape** (R2): `draw` paints fill + outline; `contains` is for hit testing; `rimPoint` for geometry.
 - **Color strategy** (R10/R11): returns fill + outline per node id; root colors come from `theme.color.root`.
 - **Node sizes** (R4): always read from `Scene.sizes` / `resolveNodeSizes`; never compute sizes elsewhere.
+- **Fonts** (L5/L6): `MountOptions.fontFetcher(url) -> Promise<ArrayBuffer>` is the I/O seam (default `fetch`;
+  hosts holding bytes return them). `FontStore` loads each URL once; `LabelFontLoader` follows
+  `config.text.{node,branch}.url`, repaints on settle and reports `{ node, branch }` status via
+  `onFontStatusChange` / `handle.fontStatus()`. A font that is loading or failed is `null` for the paint, so
+  its text is skipped, never thrown.
+- **Labels** (R12-R17): text is shaped once per font+string into em outlines + advances, then laid out by pure
+  functions (`text/labelLayout.ts`) and inked from outlines (never `fillText`). Branch labels sit between the
+  rims (`rimToRimSpan` bisects `nodeShape.contains` along the `BranchPath`), flip when the path heads left,
+  and fit via the R15 cascade in `text/branchTextFit.ts`.
 
 ## Placeholders owned by follow-up tickets
 
 - `layout/placeholderBilateralStage.ts`: grid layout -> tidy tree, bow, jitter, collision stages.
 - `render/scene.ts` `straightBranches`: straight segments -> curved tapered geometry.
-- `render/canvasRenderer.ts`: stroked lines and `fillText` labels -> filled limbs and glyph outlines.
+- `render/canvasRenderer.ts`: stroked lines -> filled limbs.
 - `mount.ts`: no interaction/edit protocol/view model yet; those add fields to `MountOptions`/`MindmapHandle`.
 
 ## Testing
 
 - Unit (Vitest, node env, BDD naming): every module above has a sibling `*.test.ts`. Canvas drawing
   itself is not unit-tested; scene assembly and scheduling are.
-- E2E (Playwright, Chromium): `e2e/` runs against the built demo served by `vite preview`.
+- E2E (Playwright, Chromium): `e2e/` runs against the built demo served by `vite preview`. Import `test`
+  from `e2e/fixtures.ts`: it aborts non-localhost requests and serves `*.ttf` from the vendored font.
+- Vendored Kalam (`assets/fonts/kalam/`, SIL OFL) is the same file as the default Fontsource URL; unit tests
+  read it via `test-support/vendoredKalam.ts`, so no test hits the network.
