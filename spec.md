@@ -170,9 +170,10 @@ structural edit is only shown as done once the host has actually done it.
 - I2. Reposition: dragging a node moves it with its whole subtree; nearby nodes are
   pushed apart (R23) and branches re-route (R8). Dragged to the other side of its
   parent, the subtree flips left/right around the node so its children grow away
-  from the parent (dragging it back flips it back); the preview shows the flip. A small movement threshold keeps
-  clicks and double-clicks from turning into drags. Reported as a position-change
-  event; positions are layout, not structure, so no confirmation.
+  from the parent (dragging it back flips it back); the preview shows the flip. A
+  small movement threshold keeps clicks and double-clicks from turning into drags.
+  Reported as a position-change event; positions are layout, not structure, so no
+  confirmation.
 
 **Structural edits** (always go through the host)
 - I3. Move (reparent): drag a node and drop it onto another node to make it that

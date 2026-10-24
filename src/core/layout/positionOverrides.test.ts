@@ -209,3 +209,47 @@ describe('GIVEN a child that was dragged earlier', () => {
     expect(withoutSubtree(earlier, tree, 'b').has('a1')).toBe(true);
   });
 });
+
+describe('GIVEN a three-level branch dragged across parents in successive drops', () => {
+  // Spaced so the push-apart never moves anything: preview vs drop under collisions is the ceiling in `subtreeMoveTo`.
+  const branch = buildTree([
+    { id: 'root', parentId: null, text: 'ROOT' },
+    { id: 'a', parentId: 'root', text: 'A', side: 'right' },
+    { id: 'a1', parentId: 'a', text: 'A1' },
+    { id: 'a11', parentId: 'a1', text: 'A11' },
+  ]);
+  const branchSizes = resolveNodeSizes(branch, DEFAULT_CONFIG.node);
+  const laidOut: NodePositions = new Map<NodeId, Point>([
+    ['root', { x: 0, y: 0 }],
+    ['a', { x: 300, y: -200 }],
+    ['a1', { x: 600, y: -300 }],
+    ['a11', { x: 900, y: -400 }],
+  ]);
+  const drawn = (overrides: PositionOverrides): NodePositions =>
+    applyPositionOverrides(laidOut, { tree: branch, sizes: branchSizes, padding: PADDING, overrides });
+  // Flips the root's child, then its child inside the flipped subtree, then drags each back and forth again.
+  const drops: readonly { readonly nodeId: NodeId; readonly to: Point }[] = [
+    { nodeId: 'a', to: { x: -300, y: -200 } },
+    { nodeId: 'a1', to: { x: -150, y: -350 } },
+    { nodeId: 'a11', to: { x: -400, y: -600 } },
+    { nodeId: 'a', to: { x: 300, y: -200 } },
+    { nodeId: 'a1', to: { x: 450, y: -500 } },
+    { nodeId: 'a', to: { x: -320, y: -220 } },
+    { nodeId: 'a1', to: { x: -700, y: -350 } },
+    { nodeId: 'a', to: { x: 200, y: -260 } },
+  ];
+
+  it('WHEN each drop lands THEN the drawn map is exactly what the drag preview showed', () => {
+    let overrides: PositionOverrides = NO_POSITION_OVERRIDES;
+    const mismatches: string[] = [];
+    drops.forEach(({ nodeId, to }, index) => {
+      const scene = drawn(overrides);
+      const move = subtreeMoveTo(scene, branch, nodeId, to)!;
+      overrides = withNodeDropped(overrides, branch, move);
+      const preview = JSON.stringify([...moveSubtree(scene, branch, move)]);
+      const afterDrop = JSON.stringify([...drawn(overrides)]);
+      if (preview !== afterDrop) mismatches.push(`drop=[${index}] preview=[${preview}] afterDrop=[${afterDrop}]`);
+    });
+    expect(mismatches).toEqual([]);
+  });
+});
