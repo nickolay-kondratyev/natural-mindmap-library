@@ -3,7 +3,7 @@ import type { AddEditRequest, EditRequest } from '../edit/editRequest';
 import { EDIT_BLOCKED_REASON, type EditSession, type EditStatus } from '../edit/editSession';
 import { findEditProblem } from '../edit/editValidation';
 import type { NodePositions } from '../layout/layoutTypes';
-import { withNodeDropped, withoutSubtree, type PositionOverrides } from '../layout/positionOverrides';
+import { subtreeMoveBy, withNodeDropped, withoutSubtree, type PositionOverrides } from '../layout/positionOverrides';
 import { rememberLast } from '../memo/rememberLast';
 import type { MindmapData, NodeId, Point, Side } from '../model/node';
 import { buildTree, type MindmapTree } from '../model/tree';
@@ -92,11 +92,10 @@ export class LocalEditState {
    * returns the event to report, or `null` when `nodeId` is not in `scene`.
    */
   dropAway(scene: DropScene, nodeId: NodeId, offset: Point): NodeRepositionEvent | null {
-    const from = scene.positions.get(nodeId);
-    if (from === undefined) return null;
-    const position = { x: from.x + offset.x, y: from.y + offset.y };
-    this.overrides = withNodeDropped(this.overrides, scene.tree, { nodeId, from, to: position });
-    return { nodeId, position };
+    const drop = subtreeMoveBy(scene.positions, scene.tree, nodeId, offset);
+    if (drop === null) return null;
+    this.overrides = withNodeDropped(this.overrides, scene.tree, drop);
+    return { nodeId, position: drop.to };
   }
 
   /** Updates the state for the new edit status; returns the editor request to reopen for retry, if any. */

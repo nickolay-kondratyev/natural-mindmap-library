@@ -47,7 +47,7 @@ branches per pointer move, over a frozen base scene.
 | `model/` | Host data types, tree index, reference data | `MindmapNode`, `buildTree(nodes, sideOrder)` -> `MindmapTree` (depth, side, ancestry), `SideOrder`, `REFERENCE_DATA` |
 | `config/` | Plain-data config + defaults + deep merge + settings storage seam | `MindmapConfig`, `DEFAULT_CONFIG`, `resolveConfig`, `ThemeConfig`, `SettingsStorage`, `SettingsPersistence`, `restoreConfig` |
 | `size/` | Single source of node sizes (R4) | `resolveNodeSizes(tree, config.node)` -> `NodeSizeMap` |
-| `layout/` | Layout `type` union + stage pipeline + bow curve + default stages + user position overrides | `LayoutConfig`, `LayoutStage`, `LayoutContext`, `runLayoutPipeline`, `defaultLayoutStages`, `layoutMindmap`, `BowCurve`, `tidyTreeStage`, `rootBowStage`, `handDrawnJitterStage`, `collisionStage` / `resolveCollisions`, `applyPositionOverrides`, `moveSubtree` |
+| `layout/` | Layout `type` union + stage pipeline + bow curve + default stages + user position overrides | `LayoutConfig`, `LayoutStage`, `LayoutContext`, `runLayoutPipeline`, `defaultLayoutStages`, `layoutMindmap`, `BowCurve`, `tidyTreeStage`, `rootBowStage`, `handDrawnJitterStage`, `collisionStage` / `resolveCollisions`, `applyPositionOverrides`, `subtreeMoveTo`, `moveSubtree` |
 | `geometry/` | Branch path representation + limb geometry | `BranchPath { length, sampleAt(arcLength) -> { point, tangent } }`, `Branch { path, width }`, `CubicBezierPath`, `buildBranches` (curves + fork + routing), `Box` helpers, `taperedOutline` |
 | `shape/` | Node shape seam (R2) | `NodeShape { draw, contains, rimPoint }`, `ellipseShape` |
 | `color/` | Color strategy seam (R10/R11) | `ColorStrategy.resolve(tree, theme) -> NodeColorMap`, `parentDerivedColorStrategy` |
@@ -160,7 +160,8 @@ branches per pointer move, over a frozen base scene.
   stores a library-local `PositionOverrides` entry and emits `onNodeReposition`. `buildScene(..., overrides)`
   applies overrides after the pipeline and re-runs `resolveCollisions` with the overridden subtrees pinned in drop
   order (no overrides = pipeline output untouched); a drop carries descendants' own overrides along, and a confirmed `move`
-  drops the moved subtree's overrides.
+  drops the moved subtree's overrides. Crossing the parent's centre line mirrors the subtree around the dragged node:
+  `subtreeMoveTo` is the single flip rule used by the drag preview, the stored drop and `applyPositionOverrides`.
   Hover buttons: "+" on the outer side (both sides for the root) opens the inline editor on a local draft child
   (`DRAFT_NODE_ID`, not sent until Enter). While they show, the hovered node keeps its hover over its hover area
   (rectangle around its box and buttons, target `near-handles`), so the pointer can cross the gap to the "+";

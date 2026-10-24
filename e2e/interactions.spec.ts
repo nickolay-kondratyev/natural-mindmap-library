@@ -102,6 +102,20 @@ test.describe('canvas interactions (spec I1-I5)', () => {
     });
   });
 
+  test('GIVEN the reference map WHEN VIDA is dragged across the root to the left THEN its child Hamlet flips to VIDA\'s far (left) side', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    const root = await nodeBox(page, 'root');
+    const vida = await nodeBox(page, 'vida');
+    expect(await nodeBox(page, 'hamlet').then((hamlet) => hamlet.center.x), 'Hamlet starts right of VIDA').toBeGreaterThan(vida.center.x);
+    const dropPoint = { x: root.center.x - (vida.center.x - root.center.x), y: vida.center.y - EMPTY_SPACE_ABOVE_VIDA_PX };
+    expect(await nodesAt(page, dropPoint), 'the drop point must be bare canvas').toEqual([]);
+    await dragFromTo(page, vida.center, dropPoint);
+    await expect.poll(async () => (await nodeBox(page, 'vida')).center.x).toBeCloseTo(dropPoint.x, WITHIN_HALF_PX);
+    expect((await nodeBox(page, 'hamlet')).center.x).toBeLessThan(dropPoint.x);
+  });
+
   test.describe('GIVEN the reference map and a point on bare canvas (spec I1)', () => {
     let emptyPoint: Point;
     test.beforeEach(async ({ page }) => {

@@ -168,7 +168,9 @@ structural edit is only shown as done once the host has actually done it.
   cursor (the point under the cursor stays put). Zoom in/out/reset are also on the
   API for host buttons. The host can read and set the view.
 - I2. Reposition: dragging a node moves it with its whole subtree; nearby nodes are
-  pushed apart (R23) and branches re-route (R8). A small movement threshold keeps
+  pushed apart (R23) and branches re-route (R8). Dragged to the other side of its
+  parent, the subtree flips left/right around the node so its children grow away
+  from the parent (dragging it back flips it back); the preview shows the flip. A small movement threshold keeps
   clicks and double-clicks from turning into drags. Reported as a position-change
   event; positions are layout, not structure, so no confirmation.
 

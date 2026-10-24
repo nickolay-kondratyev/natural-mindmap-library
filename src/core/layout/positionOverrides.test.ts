@@ -7,9 +7,12 @@ import {
   applyPositionOverrides,
   moveSubtree,
   NO_POSITION_OVERRIDES,
+  subtreeMoveBy,
+  subtreeMoveTo,
   withNodeDropped,
   withoutSubtree,
   type PositionOverrides,
+  type SubtreeMove,
 } from './positionOverrides';
 
 const PADDING = 8;
@@ -34,6 +37,11 @@ function apply(overrides: PositionOverrides): NodePositions {
   return applyPositionOverrides(positions, { tree, sizes, padding: PADDING, overrides });
 }
 
+/** Moves `nodeId` (and its subtree) in `from` so the node lands at `to`; the node must have a position there. */
+function moveTo(from: NodePositions, nodeId: NodeId, to: Point): SubtreeMove {
+  return subtreeMoveTo(from, tree, nodeId, to)!;
+}
+
 function boxesOverlap(result: NodePositions, idA: NodeId, idB: NodeId): boolean {
   const pa = result.get(idA)!;
   const pb = result.get(idB)!;
@@ -43,12 +51,45 @@ function boxesOverlap(result: NodePositions, idA: NodeId, idB: NodeId): boolean 
 }
 
 describe('moveSubtree', () => {
-  it('WHEN moving a parent THEN its child moves by the same delta', () => {
-    expect(moveSubtree(positions, tree, 'a', { x: 10, y: 20 }).get('a1')).toEqual({ x: 510, y: -80 });
+  const sameSide = subtreeMoveBy(positions, tree, 'a', { x: 10, y: 20 })!;
+
+  it('WHEN moving a parent on its side of the root THEN its child moves by the same delta', () => {
+    expect(moveSubtree(positions, tree, sameSide).get('a1')).toEqual({ x: 510, y: -80 });
   });
 
   it('WHEN moving a parent THEN unrelated nodes stay put', () => {
-    expect(moveSubtree(positions, tree, 'a', { x: 10, y: 20 }).get('b')).toEqual({ x: 300, y: 200 });
+    expect(moveSubtree(positions, tree, sameSide).get('b')).toEqual({ x: 300, y: 200 });
+  });
+
+  it('WHEN moving a parent across the root THEN its child is mirrored to the far side of it', () => {
+    expect(moveSubtree(positions, tree, moveTo(positions, 'a', { x: -300, y: -80 })).get('a1')).toEqual({ x: -500, y: -80 });
+  });
+
+  it('WHEN a mirrored parent is moved back across the root THEN its child points right again', () => {
+    const mirrored = moveSubtree(positions, tree, moveTo(positions, 'a', { x: -300, y: -100 }));
+    expect(moveSubtree(mirrored, tree, moveTo(mirrored, 'a', { x: 300, y: -100 })).get('a1')).toEqual({ x: 500, y: -100 });
+  });
+});
+
+describe('subtreeMoveBy (the drag preview)', () => {
+  it('WHEN a node is dragged past its parent THEN the move mirrors', () => {
+    expect(subtreeMoveBy(positions, tree, 'a', { x: -600, y: 0 })?.mirrored).toBe(true);
+  });
+
+  it('WHEN a node is dragged but stays on its side of the parent THEN the move does not mirror', () => {
+    expect(subtreeMoveBy(positions, tree, 'a', { x: -250, y: 0 })?.mirrored).toBe(false);
+  });
+
+  it('WHEN a node is dragged exactly onto its parent\'s centre line THEN it counts as the right side (no mirror)', () => {
+    expect(subtreeMoveBy(positions, tree, 'a', { x: -300, y: 0 })?.mirrored).toBe(false);
+  });
+
+  it('WHEN the root is dragged THEN the move never mirrors', () => {
+    expect(subtreeMoveBy(positions, tree, 'root', { x: -50, y: 0 })?.mirrored).toBe(false);
+  });
+
+  it('WHEN a node without a position is dragged THEN there is no move', () => {
+    expect(subtreeMoveBy(positions, tree, 'gone', { x: 1, y: 1 })).toBeNull();
   });
 });
 
@@ -73,6 +114,10 @@ describe('applyPositionOverrides', () => {
       ]),
     );
     expect(result.get('a1')).toEqual({ x: 450, y: 0 });
+  });
+
+  it('GIVEN an override across the root for a parent WHEN applied THEN its child is mirrored to the far side of it', () => {
+    expect(apply(new Map([['a', { x: -300, y: -100 }]])).get('a1')).toEqual({ x: -500, y: -100 });
   });
 
   it('GIVEN an override for a node that no longer exists WHEN applied THEN it is ignored', () => {
@@ -120,7 +165,7 @@ describe('GIVEN a child that was dragged earlier', () => {
   const earlier: PositionOverrides = new Map([['a1', { x: 520, y: -40 }]]);
 
   describe('WHEN its parent is dropped 10 right and 20 down', () => {
-    const result = withNodeDropped(earlier, tree, { nodeId: 'a', from: { x: 300, y: -100 }, to: { x: 310, y: -80 } });
+    const result = withNodeDropped(earlier, tree, { nodeId: 'a', from: { x: 300, y: -100 }, to: { x: 310, y: -80 }, mirrored: false });
 
     it('THEN the parent is recorded at its drop point', () => {
       expect(result.get('a')).toEqual({ x: 310, y: -80 });
@@ -131,14 +176,28 @@ describe('GIVEN a child that was dragged earlier', () => {
     });
   });
 
+  describe('WHEN its parent is dropped across the root', () => {
+    const scene = apply(earlier);
+    const drop = moveTo(scene, 'a', { x: -300, y: -100 });
+    const result = withNodeDropped(earlier, tree, drop);
+
+    it('THEN the child stays mirrored relative to the parent', () => {
+      expect(result.get('a1')).toEqual({ x: -520, y: -40 });
+    });
+
+    it('THEN the drawn child is where the drag preview showed it', () => {
+      expect(apply(result).get('a1')).toEqual(moveSubtree(scene, tree, drop).get('a1'));
+    });
+  });
+
   it('WHEN the child is dropped again after its sibling subtree THEN it counts as the latest drop', () => {
-    const afterOther = withNodeDropped(earlier, tree, { nodeId: 'b', from: { x: 300, y: 200 }, to: { x: 310, y: 220 } });
-    const result = withNodeDropped(afterOther, tree, { nodeId: 'a1', from: { x: 520, y: -40 }, to: { x: 530, y: -50 } });
+    const afterOther = withNodeDropped(earlier, tree, { nodeId: 'b', from: { x: 300, y: 200 }, to: { x: 310, y: 220 }, mirrored: false });
+    const result = withNodeDropped(afterOther, tree, { nodeId: 'a1', from: { x: 520, y: -40 }, to: { x: 530, y: -50 }, mirrored: false });
     expect([...result.keys()].at(-1)).toBe('a1');
   });
 
   it('WHEN an unrelated node is dropped THEN the child keeps its position', () => {
-    const result = withNodeDropped(earlier, tree, { nodeId: 'b', from: { x: 300, y: 200 }, to: { x: 310, y: 220 } });
+    const result = withNodeDropped(earlier, tree, { nodeId: 'b', from: { x: 300, y: 200 }, to: { x: 310, y: 220 }, mirrored: false });
     expect(result.get('a1')).toEqual({ x: 520, y: -40 });
   });
 

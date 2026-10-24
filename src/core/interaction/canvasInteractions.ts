@@ -4,7 +4,7 @@ import { PENDING_NODE_ID, type EditSession, type EditStatus } from '../edit/edit
 import type { MindmapExtensions } from '../extensions';
 import { buildBranches } from '../geometry/branchGeometry';
 import { subtreeIds } from '../layout/layoutLookups';
-import { moveSubtree } from '../layout/positionOverrides';
+import { moveSubtree, subtreeMoveBy } from '../layout/positionOverrides';
 import type { NodeId, Point, Side } from '../model/node';
 import { buildTree, type MindmapTree } from '../model/tree';
 import type { Viewport } from '../render/canvasRenderer';
@@ -511,10 +511,14 @@ function isTransient(nodeId: NodeId): boolean {
   return nodeId === PENDING_NODE_ID || nodeId === DRAFT_NODE_ID;
 }
 
-/** Drag preview: the subtree follows the pointer and branches re-route (spec R8); other nodes stay put. */
+/**
+ * Drag preview: the subtree follows the pointer (mirrored once it crosses its parent, like the drop will be) and
+ * branches re-route (spec R8); other nodes stay put.
+ */
 function draggedScene(drag: NodeDrag, branchConfig: BranchConfig): Scene {
   const { base, paintTree: tree } = drag;
-  const positions = moveSubtree(base.positions, tree, drag.nodeId, drag.offset);
+  const move = subtreeMoveBy(base.positions, tree, drag.nodeId, drag.offset);
+  const positions = move === null ? base.positions : moveSubtree(base.positions, tree, move);
   return { ...base, tree, positions, branches: buildBranches({ tree, positions, sizes: base.sizes, config: branchConfig }) };
 }
 
