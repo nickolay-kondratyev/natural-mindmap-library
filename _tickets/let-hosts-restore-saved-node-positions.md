@@ -15,8 +15,13 @@ tags: [mindmap-v1]
 ## Goal
 Hosts like Obsidian need dragged node positions to survive a reload. Today the library reports repositions via the position-change event (spec I2) but offers no way to hand saved positions back, so every reload snaps nodes back to auto layout.
 
-## Decision (2026-10-23, human): wait
-Deferred until a real host (e.g. the Obsidian plugin) needs it. Do not start this ticket before then.
+## Decision (2026-10-26, human): unblocked
+The Obsidian mindmap file needs it (`next-steps-prior-to-obsidian.md`, "Library work for the mindmap file").
+That host has one stable id per node (the list item's block id), so the identity question below does not block
+this ticket: keep the library API keyed by plain `NodeId`; any layered identity stays in the plugin.
+
+## Decision (2026-10-23, human): wait (superseded above)
+Deferred until a real host (e.g. the Obsidian plugin) needs it.
 
 Open design question to settle when this is picked up: **how a saved position finds its node again.** Hosts may not have one stable id per node. Example, Obsidian:
 - `id` in the note's frontmatter is the golden identity, used when present.
