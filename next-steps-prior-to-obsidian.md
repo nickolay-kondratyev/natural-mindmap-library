@@ -1,7 +1,8 @@
 # Next steps before the Obsidian integration
 
-Status: proposal (2026-10-23). Decided so far: desktop first; the first launch is the heading map of one note,
-with move. Open questions are under "Decisions needed" at the end.
+Status: proposal (2026-10-23, updated 2026-10-26). Decided so far: desktop first; the first launch is the heading
+map of one note, with move (library side done in v0.2.0); the **mindmap file** comes next, ahead of the other
+heading edits and the folder map. Open questions are under "Decisions needed" at the end.
 
 ## TL;DR
 
@@ -13,8 +14,8 @@ The v1 library draws a hand-sized map well. Three things block real Obsidian use
 3. **Missing host hooks.** No "node clicked" event (open the note / jump to the heading), no right-click
    menu hook, no per-node rules (a file cannot have children), and no way to restore saved positions.
 
-Order: fix speed -> host hooks -> **first launch: heading map of the active note, with move** -> collapse ->
-other heading edits -> folder/vault map. Collapse only blocks the folder map; for one note it is a nice-to-have.
+Order: fix speed -> host hooks -> **first launch: heading map of the active note, with move** -> **mindmap file**
+-> collapse -> other heading edits -> folder/vault map. Collapse only blocks the folder map; for one note it is a nice-to-have.
 
 ## Measured: where the time goes
 
@@ -60,6 +61,20 @@ right-click hook, saved positions (dragged spots reset when the note reopens), s
 the settings screen, and touch. The light theme is needed only if you use Obsidian in light mode.
 Also in the launch (decision 10): labels with emoji or non-Latin characters the font lacks are hidden on the
 branch, and the node label uses fallback fonts.
+
+## Library work for the mindmap file (next)
+
+The file format is the plugin's business (see "Phase 1a"); the library only sees `MindmapData`, `NodeId`s and
+positions. The node id is the list item's block id, so no layered identity is needed in the library.
+
+| # | Item | Why the mindmap file needs it |
+|---|---|---|
+| 1 | Restore saved positions (0.4, ticket `nid_iexvo4oqwq038twvy9od9gm2b_e`) | the file stores the layout; without it every reopen snaps back to auto layout |
+| 2 | `onNodeContextMenu` (0.2) | a mindmap file needs delete, and the map has no delete control (I4); the plugin shows Obsidian's menu |
+
+Already there: add, rename, move (I3-I5), click (I7) to open a linked note, `setData` keeps positions when the file
+changes under the open map. Not needed yet: reorder siblings (positions are free-form), collapse, per-node rules
+(the plugin refuses deleting the root with a plain reason).
 
 ## Phase 0: library work (this repo)
 
@@ -155,6 +170,37 @@ exists; that time is now. Proposal to keep the library simple:
   until the API settles; publish to npm later.
 - Add a short CHANGELOG and start versioning (0.x) once the plugin depends on it.
 
+## Phase 1a: plugin, mindmap file
+
+Plugin-side (other repo), listed here so the library API is shaped for it. A mindmap is a normal Markdown note, so
+Obsidian keeps links updated on rename, and backlinks, graph and search see them:
+
+````markdown
+---
+organic-mindmap: 1
+---
+- Project Phoenix ^root
+	- [[Some note]] ^n7f3k
+		- plain idea ^n9a2b
+
+%%
+```organic-mindmap-layout
+{"n7f3k": {"dx": 120, "dy": -40}}
+```
+%%
+````
+
+- **Detected by the frontmatter flag** (`organic-mindmap: <format version>`), not the file name: Obsidian sees
+  `x.organic-mindmap.md` as plain `md`, so the plugin switches the view like Kanban/Excalidraw do.
+- **Nested list = structure; block id = node id.** List items, not headings: headings cannot carry block ids.
+  Block ids are letters, digits and `-`, after a space at the end of the line.
+- **Layout block** keyed by block id, inside `%%` so reading view hides it. Unknown ids are dropped; nodes
+  without a saved position get the auto layout.
+- **WHY-NOT a custom `id` in frontmatter:** Obsidian would not see the links (no backlinks, graph, Dataview,
+  rename updates), we would write ids into the user's notes, and "duplicate note" copies them.
+- **The file changes under the open map** (typing, sync, Obsidian rewriting a link after a rename): re-read on
+  `vault.on('modify')` and never save stale state over it. Write deterministic output for clean diffs.
+
 ## Phase 1: plugin, heading map of one note
 
 Plugin-side (other repo), listed here so the library API is shaped for it.
@@ -235,3 +281,6 @@ Until each one ships, the plugin turns it off with the per-node rules (0.2), so 
    as the next step (an optional position on `move`, plus dropping between two siblings).
 10. ~~Emoji / non-Latin headings?~~ **Decided:** headings may use both. If the label font lacks a character, hide
     that label on its branch, and show the node label with fallback fonts. Part of the first launch.
+11. ~~Mindmap file format?~~ **Decided (2026-10-26):** a Markdown note as in "Phase 1a" (list + block ids +
+    hidden layout block), flagged by `organic-mindmap: 1`. Not a custom-id scheme.
+12. ~~When does the mindmap file come?~~ **Decided (2026-10-26):** right after the heading map launch.
